@@ -1,0 +1,32 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/data/smew1/speidel/genomics/relate_lib/include/src/tskit/kastore.c
+stdio.h
+-
+string.h
+-
+stdlib.h
+-
+assert.h
+-
+errno.h
+-
+stdbool.h
+-
+kastore.h
+/data/smew1/speidel/genomics/relate_lib/include/src/tskit/kastore.h
+
+/data/smew1/speidel/genomics/relate_lib/include/src/tskit/kastore.h
+stdint.h
+-
+stddef.h
+-
+stdio.h
+-
+

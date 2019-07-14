@@ -1,0 +1,1 @@
+/bin/c++ -fPIC -O3  -shared -Wl,-soname,librelateShared.so -o ../../../bin/librelateShared.so CMakeFiles/relateShared.dir/data.cpp.o CMakeFiles/relateShared.dir/sample.cpp.o CMakeFiles/relateShared.dir/anc.cpp.o CMakeFiles/relateShared.dir/mutations.cpp.o -Wl,-rpath,/data/smew1/speidel/genomics/relate_lib/bin ../../../bin/libgzstreamShared.so -lz 
