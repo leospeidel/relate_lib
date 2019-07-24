@@ -8,11 +8,6 @@
 #include <iomanip>
 #include <sstream>
 #include <fstream>
-#include <list>
-#include <vector>
-#include <bitset>
-#include <map>
-#include <limits>
 #include <tgmath.h>
 #include <string>
 #include <stdlib.h>
@@ -41,13 +36,10 @@ class gzip{
 //struct recording all the data needed for building anc
 struct Data{
 
-  std::string name;
   int N, L; //number of sequences, number of SNPs
   int Ne; //effective population size
   double mu; //mutation rate
-  double theta, ntheta; //mutation probability for painting. set to 0.025
 
-  CollapsedMatrix<char> sequence; //sequence matrix, containing 0 and 1
   std::vector<int> pos;    //vector specifying location of each SNP along the genome
   std::vector<double> r;   //vector of recombination distances from one SNP to the next
   std::vector<double> rpos; //vector of cumulative recombination distances
@@ -57,51 +49,9 @@ struct Data{
   Data(){}
   //Constructor, which only assigns values to N, L, Ne, mu
   Data(int N, int L, int Ne = 3e4, double mu = 1.25e-8);
-
-  //Constructor, which reads files in binary format for fast io
-  Data(const char* filename_sequence, const char* filename_pos, const char* filename_rec, const char* filename_rpos, int Ne = 3e4, double mu = 1.25e-8);
-  //Constructor, which reads pos, and param files in bin format
-  Data(const char* filename_pos, const char* filename_param, int Ne = 3e4, double mu = 1.25e-8);
- 
-  ///////////
-
-  void MakeChunks(const std::string& filename_haps, const std::string& filename_sample, const std::string& filename_map, const std::string& filename_dist, float max_memory = 5);
-  //void MakeChunks2(const std::string& filename_haps, const std::string& filename_sample, const std::string& filename_map, const std::string& filename_dist);
-
-  ///////////
-
-  void WriteSequenceAsBin(const char* filename);
-  void ReadSequenceFromBin(const char* filename);
-
-  //to read/write vectors from a file into v
-  template<typename T> void WriteVectorAsBin(std::vector<T>& v, const char* filename){
-      FILE* pf = fopen(filename, "wb");
-
-      assert(pf != NULL);
-      unsigned int size = v.size();
-      fwrite(&size, sizeof(unsigned int), 1, pf);
-      fwrite(&v[0], sizeof(T), size, pf);
-
-      fclose(pf);
-    }
-  template<typename T> void ReadVectorFromBin(std::vector<T>& v, const char* filename){
-      FILE* pf = fopen(filename, "rb");
-
-      assert(pf != NULL);
-      unsigned int size;
-      fread(&size, sizeof(unsigned int), 1, pf);
-      v.resize(size);
-      fread(&v[0], sizeof(T), size, pf);
-
-      fclose(pf);
-  }
-
+  
 };
 
-struct Element{
-  int pos;
-  double rate;
-};
 
 class haps{
 

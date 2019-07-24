@@ -84,7 +84,6 @@ Sample::Read(const std::string& filename){
 
 }
 
-
 std::string
 Sample::AssignPopOfInterest(const std::string& s_pops){
 

@@ -75,16 +75,6 @@ sstream
 -
 fstream
 -
-list
--
-vector
--
-bitset
--
-map
--
-limits
--
 tgmath.h
 -
 string

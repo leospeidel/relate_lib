@@ -75,16 +75,6 @@ sstream
 -
 fstream
 -
-list
--
-vector
--
-bitset
--
-map
--
-limits
--
 tgmath.h
 -
 string
@@ -133,10 +123,6 @@ algorithm
 -
 map
 -
-
-/data/smew1/speidel/genomics/relate_lib/include/test/UnitTest.cpp
-catch.hpp
-/data/smew1/speidel/genomics/relate_lib/include/test/catch.hpp
 
 /data/smew1/speidel/genomics/relate_lib/include/test/catch.hpp
 sstream

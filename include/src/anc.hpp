@@ -61,8 +61,6 @@ struct Node{
 struct Leaves{
 
   int num_leaves;
-  //boost::dynamic_bitset<> member;
-  //std::vector<char> member;
   std::vector<int> member;
 
 };
@@ -98,20 +96,9 @@ class Tree{
       }
     };
  
-    void GetMsPrime(igzstream& is, int num_nodes);
     void ReadTree(const char* line, int N);
-    void ReadTreeBin(FILE* pfile, int N);
     void WriteNewick(const std::string& filename_newick, double factor, const bool add = 0) const; //this is slow. For fast output use WriteOrientedTree
     void WriteNHX(const std::string& filename_nhx, std::vector<std::string>& property, const bool add = 0) const; 
-    void WriteOrientedTree(const std::string& filename, const bool add = 0);
-
-    //This is for debugging
-    void PrintTree();
-
-    //This is for aligning two trees
-    void DetermineOrderOfLeaves(Node root, std::vector<int>& leaves);
-    int CountCrossings(std::vector<int>& leaves1, std::vector<int>& leaves2);
-    void AlignTrees(Tree& reference_tree);
 
     void FindAllLeaves(std::vector<Leaves>& leaves) const;
     void FindLeaves(Node& node, std::vector<Leaves>& leaves) const; //recursive algorithm to find leaves. stored in leaves.
@@ -170,21 +157,19 @@ class AncesTree{
     CorrTrees seq; //starting position on the genome 
     int N, L;
 
+    //TODO: need to code functions
+    // NextSNP(anc, mut, it_seq, it_mut): it_mut is next SNP, it_seq is corresponding tree
+    // NextTree(anc, mut, it_seq, it_mut): it_seq is next tree, it_mut is first SNP
+    // 
+
     void Read(igzstream& is);
     void Read(const std::string& filename); //read anc in long-format. 
-    void ReadBin(FILE* pfile);
-    void ReadBin(const std::string& filename); //read anc in long-format. 
 
     void Dump(FILE* pfile);
     void Dump(std::ofstream& os); 
     void Dump(const std::string& filename); //dump anc in long-format
-    void DumpStream(const std::string& filename); //dump anc in long-format
-    void DumpBin(FILE* pfile);
-    void DumpBin(const std::string& filename); //dump anc in long-format
 
     //Read ancs from other filetypes
-    void ReadMsPrime(const std::string& filename);
-    void ReadTreesimOldStyle(const std::string& filename, const Data& data);
     void ReadArgweaverSMC(const std::string& filename);
     void ReadRent(const std::string& filename, float Ne);
     void ReadNewick(const std::string& filename, float Ne);
