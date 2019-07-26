@@ -4,15 +4,16 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "/data/smew1/speidel/genomics/relate_lib/include/src/anc.cpp" "/data/smew1/speidel/genomics/relate_lib/build/include/src/CMakeFiles/relateStatic.dir/anc.cpp.o"
-  "/data/smew1/speidel/genomics/relate_lib/include/src/data.cpp" "/data/smew1/speidel/genomics/relate_lib/build/include/src/CMakeFiles/relateStatic.dir/data.cpp.o"
-  "/data/smew1/speidel/genomics/relate_lib/include/src/mutations.cpp" "/data/smew1/speidel/genomics/relate_lib/build/include/src/CMakeFiles/relateStatic.dir/mutations.cpp.o"
-  "/data/smew1/speidel/genomics/relate_lib/include/src/sample.cpp" "/data/smew1/speidel/genomics/relate_lib/build/include/src/CMakeFiles/relateStatic.dir/sample.cpp.o"
+  "/Users/leo/Documents/genomics/relate_lib/include/src/anc.cpp" "/Users/leo/Documents/genomics/relate_lib/build/include/src/CMakeFiles/relateStatic.dir/anc.cpp.o"
+  "/Users/leo/Documents/genomics/relate_lib/include/src/data.cpp" "/Users/leo/Documents/genomics/relate_lib/build/include/src/CMakeFiles/relateStatic.dir/data.cpp.o"
+  "/Users/leo/Documents/genomics/relate_lib/include/src/mutations.cpp" "/Users/leo/Documents/genomics/relate_lib/build/include/src/CMakeFiles/relateStatic.dir/mutations.cpp.o"
+  "/Users/leo/Documents/genomics/relate_lib/include/src/sample.cpp" "/Users/leo/Documents/genomics/relate_lib/build/include/src/CMakeFiles/relateStatic.dir/sample.cpp.o"
   )
-set(CMAKE_CXX_COMPILER_ID "GNU")
+set(CMAKE_CXX_COMPILER_ID "Clang")
 
 # The include file search paths:
 set(CMAKE_CXX_TARGET_INCLUDE_PATH
+  "/opt/local/include"
   "../include/src"
   "../include/test"
   "../include/src/gzstream"
@@ -21,7 +22,7 @@ set(CMAKE_CXX_TARGET_INCLUDE_PATH
 
 # Targets to which this target links.
 set(CMAKE_TARGET_LINKED_INFO_FILES
-  "/data/smew1/speidel/genomics/relate_lib/build/include/src/gzstream/CMakeFiles/gzstreamStatic.dir/DependInfo.cmake"
+  "/Users/leo/Documents/genomics/relate_lib/build/include/src/gzstream/CMakeFiles/gzstreamStatic.dir/DependInfo.cmake"
   )
 
 # Fortran module output directory.

@@ -157,11 +157,6 @@ class AncesTree{
     CorrTrees seq; //starting position on the genome 
     int N, L;
 
-    //TODO: need to code functions
-    // NextSNP(anc, mut, it_seq, it_mut): it_mut is next SNP, it_seq is corresponding tree
-    // NextTree(anc, mut, it_seq, it_mut): it_seq is next tree, it_mut is first SNP
-    // 
-
     void Read(igzstream& is);
     void Read(const std::string& filename); //read anc in long-format. 
 

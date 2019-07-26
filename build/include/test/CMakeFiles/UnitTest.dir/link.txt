@@ -1,2 +1,2 @@
-/bin/ar qc ../../../bin/libUnitTest.a  CMakeFiles/UnitTest.dir/UnitTest.cpp.o CMakeFiles/UnitTest.dir/test_relate_lib.cpp.o
-/bin/ranlib ../../../bin/libUnitTest.a
+/Library/Developer/CommandLineTools/usr/bin/ar qc ../../../bin/libUnitTest.a  CMakeFiles/UnitTest.dir/UnitTest.cpp.o CMakeFiles/UnitTest.dir/test_relate_lib.cpp.o
+/Library/Developer/CommandLineTools/usr/bin/ranlib ../../../bin/libUnitTest.a

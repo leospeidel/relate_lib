@@ -25,6 +25,7 @@ struct SNPInfo{
 
 };
 
+typedef std::vector<SNPInfo> Muts;
 
 class Mutations{
 
@@ -38,7 +39,7 @@ class Mutations{
   public:
 
     std::string header;
-    std::vector<SNPInfo> info;
+    Muts info;
 
     Mutations(){};
     Mutations(Data& data);
@@ -74,9 +75,15 @@ class AncMutIterators{
 
     AncMutIterators(std::string filename_anc, std::string filename_mut);
 
+    void OpenFiles(std::string filename_anc, std::string filename_mut);
+    void CloseFiles(){
+      if(is.rdbuf() -> is_open()) is.close(); //close if stream is still open
+    }
+
     double NextTree(MarginalTree& mtr, Muts::iterator& it_mut);
     double FirstSNP(MarginalTree& mtr, Muts::iterator& it_mut);
     double NextSNP(MarginalTree& mtr, Muts::iterator& it_mut);
+
 
 };
 

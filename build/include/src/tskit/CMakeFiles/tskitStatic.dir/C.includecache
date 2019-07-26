@@ -1,4 +1,4 @@
-#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
 
 #IncludeRegexScan: ^.*$
 
@@ -6,7 +6,7 @@
 
 #IncludeRegexTransform: 
 
-/data/smew1/speidel/genomics/relate_lib/include/src/tskit/convert.c
+/Users/leo/Documents/genomics/relate_lib/include/src/tskit/convert.c
 stdio.h
 -
 string.h
@@ -20,13 +20,13 @@ stdlib.h
 math.h
 -
 convert.h
-/data/smew1/speidel/genomics/relate_lib/include/src/tskit/convert.h
+/Users/leo/Documents/genomics/relate_lib/include/src/tskit/convert.h
 
-/data/smew1/speidel/genomics/relate_lib/include/src/tskit/convert.h
+/Users/leo/Documents/genomics/relate_lib/include/src/tskit/convert.h
 genotypes.h
-/data/smew1/speidel/genomics/relate_lib/include/src/tskit/genotypes.h
+/Users/leo/Documents/genomics/relate_lib/include/src/tskit/genotypes.h
 
-/data/smew1/speidel/genomics/relate_lib/include/src/tskit/core.c
+/Users/leo/Documents/genomics/relate_lib/include/src/tskit/core.c
 stdio.h
 -
 stdlib.h
@@ -38,19 +38,19 @@ errno.h
 assert.h
 -
 kastore.h
-/data/smew1/speidel/genomics/relate_lib/include/src/tskit/kastore.h
+/Users/leo/Documents/genomics/relate_lib/include/src/tskit/kastore.h
 core.h
-/data/smew1/speidel/genomics/relate_lib/include/src/tskit/core.h
+/Users/leo/Documents/genomics/relate_lib/include/src/tskit/core.h
 windows.h
 -
 wincrypt.h
 -
 
-/data/smew1/speidel/genomics/relate_lib/include/src/tskit/core.h
+/Users/leo/Documents/genomics/relate_lib/include/src/tskit/core.h
 stdbool.h
 -
 
-/data/smew1/speidel/genomics/relate_lib/include/src/tskit/genotypes.c
+/Users/leo/Documents/genomics/relate_lib/include/src/tskit/genotypes.c
 stdio.h
 -
 string.h
@@ -62,13 +62,13 @@ stdbool.h
 stdlib.h
 -
 genotypes.h
-/data/smew1/speidel/genomics/relate_lib/include/src/tskit/genotypes.h
+/Users/leo/Documents/genomics/relate_lib/include/src/tskit/genotypes.h
 
-/data/smew1/speidel/genomics/relate_lib/include/src/tskit/genotypes.h
+/Users/leo/Documents/genomics/relate_lib/include/src/tskit/genotypes.h
 trees.h
-/data/smew1/speidel/genomics/relate_lib/include/src/tskit/trees.h
+/Users/leo/Documents/genomics/relate_lib/include/src/tskit/trees.h
 
-/data/smew1/speidel/genomics/relate_lib/include/src/tskit/kastore.h
+/Users/leo/Documents/genomics/relate_lib/include/src/tskit/kastore.h
 stdint.h
 -
 stddef.h
@@ -76,7 +76,7 @@ stddef.h
 stdio.h
 -
 
-/data/smew1/speidel/genomics/relate_lib/include/src/tskit/stats.c
+/Users/leo/Documents/genomics/relate_lib/include/src/tskit/stats.c
 stdio.h
 -
 string.h
@@ -88,13 +88,13 @@ assert.h
 math.h
 -
 stats.h
-/data/smew1/speidel/genomics/relate_lib/include/src/tskit/stats.h
+/Users/leo/Documents/genomics/relate_lib/include/src/tskit/stats.h
 
-/data/smew1/speidel/genomics/relate_lib/include/src/tskit/stats.h
+/Users/leo/Documents/genomics/relate_lib/include/src/tskit/stats.h
 trees.h
-/data/smew1/speidel/genomics/relate_lib/include/src/tskit/trees.h
+/Users/leo/Documents/genomics/relate_lib/include/src/tskit/trees.h
 
-/data/smew1/speidel/genomics/relate_lib/include/src/tskit/tables.c
+/Users/leo/Documents/genomics/relate_lib/include/src/tskit/tables.c
 stdio.h
 -
 stddef.h
@@ -110,9 +110,9 @@ stdlib.h
 float.h
 -
 tables.h
-/data/smew1/speidel/genomics/relate_lib/include/src/tskit/tables.h
+/Users/leo/Documents/genomics/relate_lib/include/src/tskit/tables.h
 
-/data/smew1/speidel/genomics/relate_lib/include/src/tskit/tables.h
+/Users/leo/Documents/genomics/relate_lib/include/src/tskit/tables.h
 stdio.h
 -
 stdbool.h
@@ -120,11 +120,11 @@ stdbool.h
 stdint.h
 -
 kastore.h
-/data/smew1/speidel/genomics/relate_lib/include/src/tskit/kastore.h
+/Users/leo/Documents/genomics/relate_lib/include/src/tskit/kastore.h
 core.h
-/data/smew1/speidel/genomics/relate_lib/include/src/tskit/core.h
+/Users/leo/Documents/genomics/relate_lib/include/src/tskit/core.h
 
-/data/smew1/speidel/genomics/relate_lib/include/src/tskit/trees.c
+/Users/leo/Documents/genomics/relate_lib/include/src/tskit/trees.c
 stdio.h
 -
 string.h
@@ -136,9 +136,9 @@ stdbool.h
 stdlib.h
 -
 trees.h
-/data/smew1/speidel/genomics/relate_lib/include/src/tskit/trees.h
+/Users/leo/Documents/genomics/relate_lib/include/src/tskit/trees.h
 
-/data/smew1/speidel/genomics/relate_lib/include/src/tskit/trees.h
+/Users/leo/Documents/genomics/relate_lib/include/src/tskit/trees.h
 tables.h
-/data/smew1/speidel/genomics/relate_lib/include/src/tskit/tables.h
+/Users/leo/Documents/genomics/relate_lib/include/src/tskit/tables.h
 

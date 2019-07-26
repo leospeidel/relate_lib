@@ -4,17 +4,13 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_C
-  "/data/smew1/speidel/genomics/relate_lib/include/src/tskit/kastore.c" "/data/smew1/speidel/genomics/relate_lib/build/include/src/tskit/CMakeFiles/kastoreShared.dir/kastore.c.o"
+  "/Users/leo/Documents/genomics/relate_lib/include/src/tskit/kastore.c" "/Users/leo/Documents/genomics/relate_lib/build/include/src/tskit/CMakeFiles/kastoreShared.dir/kastore.c.o"
   )
-set(CMAKE_C_COMPILER_ID "GNU")
-
-# Preprocessor definitions for this target.
-set(CMAKE_TARGET_DEFINITIONS_C
-  "kastoreShared_EXPORTS"
-  )
+set(CMAKE_C_COMPILER_ID "Clang")
 
 # The include file search paths:
 set(CMAKE_C_TARGET_INCLUDE_PATH
+  "/opt/local/include"
   "../include/src"
   "../include/test"
   "../include/src/gzstream"

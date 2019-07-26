@@ -4,17 +4,13 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "/data/smew1/speidel/genomics/relate_lib/include/src/gzstream/gzstream.cpp" "/data/smew1/speidel/genomics/relate_lib/build/include/src/gzstream/CMakeFiles/gzstreamShared.dir/gzstream.cpp.o"
+  "/Users/leo/Documents/genomics/relate_lib/include/src/gzstream/gzstream.cpp" "/Users/leo/Documents/genomics/relate_lib/build/include/src/gzstream/CMakeFiles/gzstreamShared.dir/gzstream.cpp.o"
   )
-set(CMAKE_CXX_COMPILER_ID "GNU")
-
-# Preprocessor definitions for this target.
-set(CMAKE_TARGET_DEFINITIONS_CXX
-  "gzstreamShared_EXPORTS"
-  )
+set(CMAKE_CXX_COMPILER_ID "Clang")
 
 # The include file search paths:
 set(CMAKE_CXX_TARGET_INCLUDE_PATH
+  "/opt/local/include"
   "../include/src"
   "../include/test"
   "../include/src/gzstream"
