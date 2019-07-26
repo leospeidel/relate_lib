@@ -1,0 +1,192 @@
+#ifndef MUTATIONS_HPP
+#define MUTATIONS_HPP
+
+#include "gzstream.hpp"
+#include "data.hpp"
+#include "anc.hpp"
+
+#include <iostream>
+#include <deque>
+
+struct SNPInfo{
+
+  std::string rs_id;
+  int snp_id;
+  int pos, dist;
+
+  int tree;
+  std::deque<int> branch;
+  std::vector<int> freq;
+  bool flipped = false;
+  float age_begin = 0.0, age_end = 0.0;
+
+  std::string upstream_base = "NA", downstream_base = "NA";
+  std::string mutation_type = "NA";
+
+};
+
+
+class Mutations{
+
+  private:
+
+    int N;
+    int L;
+
+    int num_flips, num_notmappingmutations;
+
+  public:
+
+    std::string header;
+    std::vector<SNPInfo> info;
+
+    Mutations(){};
+    Mutations(Data& data);
+    void Init(Data& data);
+
+    //////////////////////////////////////////////////////
+
+    void GetAge(AncesTree& anc);
+   
+    void Read(igzstream& is);
+    void Read(const std::string& filename);
+    void Dump(const std::string& filename);
+
+    int GetNumFlippedMutations(){return num_flips;}
+    int GetNumNotMappingMutations(){return num_notmappingmutations;}
+
+};
+
+class AncMutIterators{
+
+  private:
+
+    igzstream is;
+    Muts::iterator pit_mut;
+    Mutations mut;
+
+    int N, num_trees;
+    int tree_index_in_anc, tree_index_in_mut;
+    double num_bases_tree_persists;
+    std::string line;
+
+  public:
+
+    AncMutIterators(std::string filename_anc, std::string filename_mut){
+      is.open(filename_anc);
+      if(is.fail()) is.open(filename_anc + ".gz");
+      if(is.fail()){
+        std::cerr << "Failed to open file " << filename_anc << "(.gz)" << std::endl;
+      }
+
+      is.ignore(256, ' ');
+      is >> N;
+      is.ignore(256, ' ');
+      is >> num_trees;
+      assert(getline(is, line));
+
+      mut.Read(filename_mut);
+      pit_mut           = mut.info.begin();
+      tree_index_in_mut = (*pit_mut).tree;
+      tree_index_in_anc = -1;
+    }
+
+    double
+    NextTree(MarginalTree& mtr, Muts::iterator& it_mut){
+
+      if(tree_index_in_anc + 1 == num_trees){
+        return(-1.0); //signals that we reached last tree
+      }
+      assert(getline(is, line));
+      mtr.Read(line, N); //read marginal tree
+      tree_index_in_anc++;
+     
+      //pit_mut is pointing to first SNP in new tree already
+      it_mut                         = pit_mut;
+
+      if(tree_index_in_anc == tree_index_in_mut){
+       
+        //calculate how long tree persists 
+        if(pit_mut != mut.info.begin()){
+          num_bases_tree_persists = (*std::prev(pit_mut,1)).dist/2.0;
+        }else{
+          num_bases_tree_persists = 0.0;
+        }
+
+        while(tree_index_in_mut == (*pit_mut).tree){
+          num_bases_tree_persists  += (*pit_mut).dist;
+          pit_mut++;
+          if(pit_mut == mut.info.end()) break;
+        }
+        
+        if(pit_mut != mut.info.end()){
+          num_bases_tree_persists -= (*std::prev(pit_mut,1)).dist/2.0;   
+          assert(tree_index_in_mut < (*pit_mut).tree);
+          tree_index_in_mut        = (*pit_mut).tree;
+        }
+
+        return(num_bases_tree_persists);
+
+      }else{ //tree has no mutations
+        return 0.0;
+      }
+      
+    }
+
+    double
+    FirstSNP(MarginalTree& mtr, Muts::iterator& it_mut){
+   
+      it_mut = mut.info.begin();
+
+      if(it_mut == mut.info.end()){ //now at end
+        return(-1.0);
+      }
+
+      //do nothing if (*it_mut).tree + 1 == tree_index_in_mut;
+      if((*it_mut).tree == tree_index_in_mut){
+        while(NextTree(mtr, it_mut) == 0.0); //skip any trees without mutations
+      }
+
+      //return the number of bases between prev and next snp (midpoints)
+      if(it_mut != mut.info.begin()){
+        num_bases_tree_persists = (*std::prev(it_mut,1)).dist/2.0 + (*it_mut).dist/2.0;
+      }else{
+        num_bases_tree_persists = (*it_mut).dist/2.0;
+      }
+
+      return(num_bases_tree_persists);
+
+    }
+
+
+    double
+    NextSNP(MarginalTree& mtr, Muts::iterator& it_mut){
+   
+      if(it_mut == mut.info.end()){ //already at end
+        return(-1.0);
+      }
+      it_mut++;
+      if(it_mut == mut.info.end()){ //now at end
+        return(-1.0);
+      }
+
+      //do nothing if (*it_mut).tree + 1 == tree_index_in_mut;
+      if((*it_mut).tree == tree_index_in_mut){
+        while(NextTree(mtr, it_mut) == 0.0); //skip any trees without mutations
+      }
+
+      //return the number of bases between prev and next snp (midpoints)
+      if(it_mut != mut.info.begin()){
+        num_bases_tree_persists = (*std::prev(it_mut,1)).dist/2.0 + (*it_mut).dist/2.0;
+      }else{
+        num_bases_tree_persists = (*it_mut).dist/2.0;
+      }
+
+      return(num_bases_tree_persists);
+
+    }
+
+};
+
+
+#endif //MUTATIONS_HPP 

@@ -57,5 +57,28 @@ class Mutations{
 
 };
 
+class AncMutIterators{
+
+  private:
+
+    igzstream is;
+    Muts::iterator pit_mut;
+    Mutations mut;
+
+    int N, num_trees;
+    int tree_index_in_anc, tree_index_in_mut;
+    double num_bases_tree_persists;
+    std::string line;
+
+  public:
+
+    AncMutIterators(std::string filename_anc, std::string filename_mut);
+
+    double NextTree(MarginalTree& mtr, Muts::iterator& it_mut);
+    double FirstSNP(MarginalTree& mtr, Muts::iterator& it_mut);
+    double NextSNP(MarginalTree& mtr, Muts::iterator& it_mut);
+
+};
+
 
 #endif //MUTATIONS_HPP 
