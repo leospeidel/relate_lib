@@ -79,6 +79,19 @@ class AncMutIterators{
     void CloseFiles(){
       if(is.rdbuf() -> is_open()) is.close(); //close if stream is still open
     }
+    int NumSnps(){
+      return(mut.info.size());
+    }
+
+    Muts::iterator mut_begin(){
+      return(mut.info.begin());
+    }
+    Muts::iterator mut_end(){
+      return(mut.info.end());
+    }
+    int get_treecount(){
+      return(tree_index_in_anc);
+    }
 
     double NextTree(MarginalTree& mtr, Muts::iterator& it_mut);
     double FirstSNP(MarginalTree& mtr, Muts::iterator& it_mut);
@@ -86,6 +99,5 @@ class AncMutIterators{
 
 
 };
-
 
 #endif //MUTATIONS_HPP 
