@@ -686,6 +686,7 @@ DumpAsTreeSequenceWithPolytomies(const std::string& filename_anc, const std::str
       if(n < N){
         if( update_forwards[parent_prev] == 0 || update_forwards[parent_prev] != parent_now ){
           //these edges don't exist anymore
+          //if(n < N) std::cerr << n << " " <<  prev_mtr.tree.nodes[n].SNP_begin << " " << pos_end << std::endl << std::endl;
           if(n > 0) assert(convert_nodes_prev[n] != 0);
           assert(convert_nodes_prev[parent_prev] != 0);
           ret = tsk_edge_table_add_row(&tables.edges, prev_mtr.tree.nodes[n].SNP_begin, pos_end, convert_nodes_prev[parent_prev], convert_nodes_prev[n]);

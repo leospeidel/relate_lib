@@ -143,9 +143,9 @@ Compress(cxxopts::Options& options){
 
   std::vector<Leaves> leaves, prev_leaves;
 
-  //DumpAsTreeSequence(options["anc"].as<std::string>(), options["mut"].as<std::string>(), options["output"].as<std::string>() + ".trees");
+  DumpAsTreeSequence(options["anc"].as<std::string>(), options["mut"].as<std::string>(), options["output"].as<std::string>() + ".trees");
   DumpAsTreeSequenceWithPolytomies(options["anc"].as<std::string>(), options["mut"].as<std::string>(), options["output"].as<std::string>() + "_withpoly.trees");
-  //DumpAsTreeSequenceWithPolytomies(options["anc"].as<std::string>(), options["mut"].as<std::string>(), options["haps"].as<std::string>(), options["sample"].as<std::string>(), options["output"].as<std::string>() + "_withpoly.trees");
+  DumpAsTreeSequenceWithPolytomies(options["anc"].as<std::string>(), options["mut"].as<std::string>(), options["haps"].as<std::string>(), options["sample"].as<std::string>(), options["output"].as<std::string>() + "_withpoly.trees");
 
   ////////// 1. Read one tree at a time /////////
 
