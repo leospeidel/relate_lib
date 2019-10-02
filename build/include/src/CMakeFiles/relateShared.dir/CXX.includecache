@@ -1,4 +1,4 @@
-#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
 
 #IncludeRegexScan: ^.*$
 
@@ -16,17 +16,65 @@ zlib.h
 string
 -
 
-/Users/leo/Documents/genomics/relate_lib/include/src/anc.cpp
-anc.hpp
-/Users/leo/Documents/genomics/relate_lib/include/src/anc.hpp
+../include/src/tskit/convert.h
+genotypes.h
+../include/src/tskit/genotypes.h
 
-/Users/leo/Documents/genomics/relate_lib/include/src/anc.hpp
+../include/src/tskit/core.h
+stdbool.h
+-
+
+../include/src/tskit/genotypes.h
+trees.h
+../include/src/tskit/trees.h
+
+../include/src/tskit/kastore.h
+stdint.h
+-
+stddef.h
+-
+stdio.h
+-
+
+../include/src/tskit/stats.h
+trees.h
+../include/src/tskit/trees.h
+
+../include/src/tskit/tables.h
+stdio.h
+-
+stdbool.h
+-
+stdint.h
+-
+kastore.h
+../include/src/tskit/kastore.h
+core.h
+../include/src/tskit/core.h
+
+../include/src/tskit/trees.h
+tables.h
+../include/src/tskit/tables.h
+
+../include/src/tskit/tskit.h
+core.h
+../include/src/tskit/core.h
+trees.h
+../include/src/tskit/trees.h
+genotypes.h
+../include/src/tskit/genotypes.h
+convert.h
+../include/src/tskit/convert.h
+stats.h
+../include/src/tskit/stats.h
+
+/data/smew1/speidel/genomics/relate_lib/include/src/anc.hpp
 gzstream.hpp
-/Users/leo/Documents/genomics/relate_lib/include/src/gzstream.hpp
+/data/smew1/speidel/genomics/relate_lib/include/src/gzstream.hpp
 data.hpp
-/Users/leo/Documents/genomics/relate_lib/include/src/data.hpp
+/data/smew1/speidel/genomics/relate_lib/include/src/data.hpp
 sample.hpp
-/Users/leo/Documents/genomics/relate_lib/include/src/sample.hpp
+/data/smew1/speidel/genomics/relate_lib/include/src/sample.hpp
 iostream
 -
 iomanip
@@ -42,7 +90,7 @@ ctime
 tgmath.h
 -
 
-/Users/leo/Documents/genomics/relate_lib/include/src/collapsed_matrix.hpp
+/data/smew1/speidel/genomics/relate_lib/include/src/collapsed_matrix.hpp
 stdio.h
 -
 iostream
@@ -52,15 +100,11 @@ vector
 cassert
 -
 
-/Users/leo/Documents/genomics/relate_lib/include/src/data.cpp
-data.hpp
-/Users/leo/Documents/genomics/relate_lib/include/src/data.hpp
-
-/Users/leo/Documents/genomics/relate_lib/include/src/data.hpp
+/data/smew1/speidel/genomics/relate_lib/include/src/data.hpp
 collapsed_matrix.hpp
-/Users/leo/Documents/genomics/relate_lib/include/src/collapsed_matrix.hpp
+/data/smew1/speidel/genomics/relate_lib/include/src/collapsed_matrix.hpp
 gzstream.hpp
-/Users/leo/Documents/genomics/relate_lib/include/src/gzstream.hpp
+/data/smew1/speidel/genomics/relate_lib/include/src/gzstream.hpp
 iostream
 -
 iomanip
@@ -80,29 +124,21 @@ string.h
 cassert
 -
 
-/Users/leo/Documents/genomics/relate_lib/include/src/mutations.cpp
-mutations.hpp
-/Users/leo/Documents/genomics/relate_lib/include/src/mutations.hpp
-
-/Users/leo/Documents/genomics/relate_lib/include/src/mutations.hpp
+/data/smew1/speidel/genomics/relate_lib/include/src/mutations.hpp
 gzstream.hpp
-/Users/leo/Documents/genomics/relate_lib/include/src/gzstream.hpp
+/data/smew1/speidel/genomics/relate_lib/include/src/gzstream.hpp
 data.hpp
-/Users/leo/Documents/genomics/relate_lib/include/src/data.hpp
+/data/smew1/speidel/genomics/relate_lib/include/src/data.hpp
 anc.hpp
-/Users/leo/Documents/genomics/relate_lib/include/src/anc.hpp
+/data/smew1/speidel/genomics/relate_lib/include/src/anc.hpp
 iostream
 -
 deque
 -
 
-/Users/leo/Documents/genomics/relate_lib/include/src/sample.cpp
-sample.hpp
-/Users/leo/Documents/genomics/relate_lib/include/src/sample.hpp
-
-/Users/leo/Documents/genomics/relate_lib/include/src/sample.hpp
+/data/smew1/speidel/genomics/relate_lib/include/src/sample.hpp
 gzstream.hpp
-/Users/leo/Documents/genomics/relate_lib/include/src/gzstream.hpp
+/data/smew1/speidel/genomics/relate_lib/include/src/gzstream.hpp
 iostream
 -
 iomanip
@@ -116,23 +152,25 @@ algorithm
 map
 -
 
-/opt/local/include/zconf.h
-windows.h
--
-limits.h
--
-sys/types.h
--
-stdarg.h
--
-stddef.h
--
-unistd.h
--
-unixio.h
--
+/data/smew1/speidel/genomics/relate_lib/include/src/tree_sequence.cpp
+tree_sequence.hpp
+/data/smew1/speidel/genomics/relate_lib/include/src/tree_sequence.hpp
 
-/opt/local/include/zlib.h
-zconf.h
-/opt/local/include/zconf.h
+/data/smew1/speidel/genomics/relate_lib/include/src/tree_sequence.hpp
+iostream
+-
+err.h
+-
+deque
+-
+gzstream.hpp
+/data/smew1/speidel/genomics/relate_lib/include/src/gzstream.hpp
+data.hpp
+/data/smew1/speidel/genomics/relate_lib/include/src/data.hpp
+anc.hpp
+/data/smew1/speidel/genomics/relate_lib/include/src/anc.hpp
+mutations.hpp
+/data/smew1/speidel/genomics/relate_lib/include/src/mutations.hpp
+tskit.h
+/data/smew1/speidel/genomics/relate_lib/include/src/tskit.h
 

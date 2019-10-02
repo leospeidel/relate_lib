@@ -73,14 +73,21 @@ class AncMutIterators{
 
   public:
 
+    AncMutIterators(){};
     AncMutIterators(std::string filename_anc, std::string filename_mut);
 
     void OpenFiles(std::string filename_anc, std::string filename_mut);
     void CloseFiles(){
       if(is.rdbuf() -> is_open()) is.close(); //close if stream is still open
     }
+    int NumTips(){
+      return(N);
+    }
     int NumSnps(){
       return(mut.info.size());
+    }
+    int NumTrees(){
+      return(num_trees);
     }
 
     Muts::iterator mut_begin(){
@@ -96,7 +103,6 @@ class AncMutIterators{
     double NextTree(MarginalTree& mtr, Muts::iterator& it_mut);
     double FirstSNP(MarginalTree& mtr, Muts::iterator& it_mut);
     double NextSNP(MarginalTree& mtr, Muts::iterator& it_mut);
-
 
 };
 

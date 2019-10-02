@@ -1,2 +1,2 @@
-/Library/Developer/CommandLineTools/usr/bin/ar qc ../../../bin/librelateStatic.a  CMakeFiles/relateStatic.dir/data.cpp.o CMakeFiles/relateStatic.dir/sample.cpp.o CMakeFiles/relateStatic.dir/anc.cpp.o CMakeFiles/relateStatic.dir/mutations.cpp.o
-/Library/Developer/CommandLineTools/usr/bin/ranlib ../../../bin/librelateStatic.a
+/bin/ar qc ../../../bin/librelateStatic.a  CMakeFiles/relateStatic.dir/data.cpp.o CMakeFiles/relateStatic.dir/sample.cpp.o CMakeFiles/relateStatic.dir/anc.cpp.o CMakeFiles/relateStatic.dir/mutations.cpp.o CMakeFiles/relateStatic.dir/tree_sequence.cpp.o
+/bin/ranlib ../../../bin/librelateStatic.a

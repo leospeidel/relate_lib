@@ -1,4 +1,4 @@
-# Install script for directory: /Users/leo/Documents/genomics/relate_lib/include/example
+# Install script for directory: /data/smew1/speidel/genomics/relate_lib/include/example
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -25,5 +25,15 @@ if(NOT CMAKE_INSTALL_COMPONENT)
   else()
     set(CMAKE_INSTALL_COMPONENT)
   endif()
+endif()
+
+# Install shared libraries without execute permission?
+if(NOT DEFINED CMAKE_INSTALL_SO_NO_EXE)
+  set(CMAKE_INSTALL_SO_NO_EXE "0")
+endif()
+
+# Is this installation the result of a crosscompile?
+if(NOT DEFINED CMAKE_CROSSCOMPILING)
+  set(CMAKE_CROSSCOMPILING "FALSE")
 endif()
 

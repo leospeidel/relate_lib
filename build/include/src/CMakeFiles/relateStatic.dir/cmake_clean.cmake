@@ -3,6 +3,7 @@ file(REMOVE_RECURSE
   "CMakeFiles/relateStatic.dir/sample.cpp.o"
   "CMakeFiles/relateStatic.dir/anc.cpp.o"
   "CMakeFiles/relateStatic.dir/mutations.cpp.o"
+  "CMakeFiles/relateStatic.dir/tree_sequence.cpp.o"
   "../../../bin/librelateStatic.pdb"
   "../../../bin/librelateStatic.a"
 )

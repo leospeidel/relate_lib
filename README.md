@@ -22,5 +22,6 @@ make
 
 ## Documentation
 
-TODO
+Still working on the documentation.
+Please see ./include/example/CMakeLists.txt for how to use this library and ./example/example.sh for how to run the example.
 

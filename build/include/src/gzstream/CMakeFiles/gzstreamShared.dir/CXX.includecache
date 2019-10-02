@@ -1,4 +1,4 @@
-#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
 
 #IncludeRegexScan: ^.*$
 
@@ -16,31 +16,11 @@ zlib.h
 string
 -
 
-/Users/leo/Documents/genomics/relate_lib/include/src/gzstream/gzstream.cpp
+/data/smew1/speidel/genomics/relate_lib/include/src/gzstream/gzstream.cpp
 gzstream.hpp
 -
 iostream
 -
 string.h
 -
-
-/opt/local/include/zconf.h
-windows.h
--
-limits.h
--
-sys/types.h
--
-stdarg.h
--
-stddef.h
--
-unistd.h
--
-unixio.h
--
-
-/opt/local/include/zlib.h
-zconf.h
-/opt/local/include/zconf.h
 

@@ -1,1 +1,1 @@
-/Library/Developer/CommandLineTools/usr/bin/c++   -O3 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX10.14.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names  CMakeFiles/Example.dir/Example.cpp.o  -o ../../../bin/Example  ../../../bin/librelateStatic.a ../../../bin/libgzstreamStatic.a /opt/local/lib/libz.dylib 
+/bin/c++  -O3  -rdynamic CMakeFiles/Example.dir/Example.cpp.o  -o ../../../bin/Example ../../../bin/librelateStatic.a ../../../bin/libgzstreamStatic.a -lz ../../../bin/libtskitStatic.a ../../../bin/libkastoreStatic.a 

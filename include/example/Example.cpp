@@ -10,7 +10,6 @@
 #include <sys/resource.h>
 #include <string>
 
-
 // In this function, I list 3 different ways of parsing anc/mut files
 void
 Parse(cxxopts::Options& options){
@@ -116,125 +115,49 @@ Parse(cxxopts::Options& options){
 
 }
 
+//In this function, I am parsing haps/sample and poplabels files
 void
-Compress(cxxopts::Options& options){
+ParseData(cxxopts::Options& options){
 
   //////////////////////////////////
   //Program options
 
   bool help = false;
-  if(!options.count("anc") || !options.count("mut") || !options.count("output")){
+  if(!options.count("haps") || !options.count("sample") || !options.count("poplabels")){
     std::cout << "Not enough arguments supplied." << std::endl;
-    std::cout << "Needed: anc, mut, output." << std::endl;
+    std::cout << "Needed: haps, sample, poplabels." << std::endl;
     help = true;
   }
   if(options.count("help") || help){
     std::cout << options.help({""}) << std::endl;
-    std::cout << "Example code for parsing anc/mut files." << std::endl;
+    std::cout << "Example code for parsing haps/sample and poplabels files." << std::endl;
     exit(0);
   }  
 
   std::cerr << "---------------------------------------------------------" << std::endl;
-  std::cerr << "Parsing " << options["anc"].as<std::string>() << " and " << options["mut"].as<std::string>() << "..." << std::endl;
+  std::cerr << "Parsing " << options["haps"].as<std::string>() << ", " << options["sample"].as<std::string>() << ", and " << options["poplabels"].as<std::string>() << "..." << std::endl;
 
-  MarginalTree mtr, prev_mtr; //stores marginal trees. mtr.pos is SNP position at which tree starts, mtr.tree stores the tree
-  Muts::iterator it_mut; //iterator for mut file
-  float num_bases_tree_persists = 0.0;
 
-  std::vector<Leaves> leaves, prev_leaves;
+  haps m_hap(options["haps"].as<std::string>().c_str(), options["sample"].as<std::string>().c_str());
+  Data data(m_hap.GetN(), m_hap.GetL());
 
-  DumpAsTreeSequence(options["anc"].as<std::string>(), options["mut"].as<std::string>(), options["output"].as<std::string>() + ".trees");
-  DumpAsTreeSequenceWithPolytomies(options["anc"].as<std::string>(), options["mut"].as<std::string>(), options["output"].as<std::string>() + "_withpoly.trees");
-  DumpAsTreeSequenceWithPolytomies(options["anc"].as<std::string>(), options["mut"].as<std::string>(), options["haps"].as<std::string>(), options["sample"].as<std::string>(), options["output"].as<std::string>() + "_withpoly_exact.trees");
-
-  ////////// 1. Read one tree at a time /////////
-
-  //We open anc file and read one tree at a time. File remains open until all trees have been read OR ancmut.CloseFiles() is called.
-  //The mut file is read once, file is closed after constructor is called.
-  AncMutIterators ancmut(options["anc"].as<std::string>(), options["mut"].as<std::string>());
-
-  num_bases_tree_persists = ancmut.NextTree(mtr, it_mut);
-  mtr.tree.FindAllLeaves(leaves);
-  prev_leaves = leaves;
-  prev_mtr    = mtr;
-
-  int N = (leaves.size() + 1)/2.0;
-
-  //iterate through whole file
-  while(num_bases_tree_persists >= 0.0){
-
-    //mtr stores the marginal tree, it_mut points to the first SNP at which the marginal tree starts.
-    //If marginal tree has no SNPs mapping to it, it_mut points to the first SNP of the following tree that has a SNP mapping to it
-    num_bases_tree_persists = ancmut.NextTree(mtr, it_mut);
-    mtr.tree.FindAllLeaves(leaves);
-
-    float frac_same = 0.0, frac_same_index = 0.0;
-
-    std::vector<int> is_different(2*N-1, 0);
-
-    //This will need to get replaced by a hash function
-    for(int i = N; i < leaves.size()-1; i++){
-
-      bool different = true;
-      if(prev_leaves[i].num_leaves == leaves[i].num_leaves){
-
-        different = false;
-        std::vector<int>::iterator it_prev_leaves = prev_leaves[i].member.begin();
-        for(std::vector<int>::iterator it_leaves = leaves[i].member.begin(); it_leaves != leaves[i].member.end();){
-          if(*it_leaves != *it_prev_leaves){
-            different = true;
-            break;
-          }
-          it_leaves++;
-          it_prev_leaves++;
-        }
-
-        if(!different){
-          frac_same_index += 1.0;
-          frac_same += 1.0;
-        }
-
-      }
-
-      if(different){
-       
-        for(int j = N; j < prev_leaves.size(); j++){
-          if(leaves[i].num_leaves == prev_leaves[j].num_leaves){
-
-            different = false;
-            std::vector<int>::iterator it_prev_leaves = prev_leaves[j].member.begin();
-            for(std::vector<int>::iterator it_leaves = leaves[i].member.begin(); it_leaves != leaves[i].member.end();){
-              if(*it_leaves != *it_prev_leaves){
-                different = true;
-                break;
-              }
-              it_leaves++;
-              it_prev_leaves++;
-            }
-
-            if(!different){
-              if(i == j) frac_same_index += 1.0;
-              frac_same += 1.0;
-              break;
-            }
-
-          }
-        }
-
-        //if(different){
-        //  //there is no node that's the same as n
-        //} 
-
-      }
-    }
-
-    //std::cerr << frac_same/N << " " << frac_same_index/N << std::endl;
-
-    prev_leaves = leaves;
-    prev_mtr    = mtr; 
-
+  std::vector<char> sequence(data.N);
+  int bp;
+  //parse snp by snp
+  for(int snp = 0; snp < data.L; snp++){ 
+    m_hap.ReadSNP(sequence, bp);
   }
-  //at this point, anc file has been closed.
+
+  //Parse poplabels file
+  //(defined in include/src/sample.hpp)
+  Sample poplabels;
+  poplabels.Read(options["poplabels"].as<std::string>());
+  poplabels.AssignPopOfInterest("group1,group2"); //assign populations of interest (comma separated)
+
+  //group of haplotype 0:
+  std::string group  = poplabels.groups[poplabels.group_of_haplotype[0]];
+  //region of group
+  std::string region = poplabels.region_of_group[group];
 
   /////////////////////////////////////////////
   //Resource Usage
@@ -253,7 +176,53 @@ Compress(cxxopts::Options& options){
 
 }
 
+// In this function, I will convert from anc/mut to tree sequence file format (functions are defined in ./include/src/tree_sequence.hpp)
+void
+ConvertToTreeSequence(cxxopts::Options& options){
 
+  //////////////////////////////////
+  //Program options
+
+  bool help = false;
+  if(!options.count("anc") || !options.count("mut") || !options.count("output")){
+    std::cout << "Not enough arguments supplied." << std::endl;
+    std::cout << "Needed: anc, mut, output." << std::endl;
+    help = true;
+  }
+  if(options.count("help") || help){
+    std::cout << options.help({""}) << std::endl;
+    std::cout << "Example code for converting to tree sequence file format." << std::endl;
+    exit(0);
+  }  
+
+  std::cerr << "---------------------------------------------------------" << std::endl;
+  std::cerr << "Converting " << options["anc"].as<std::string>() << " and " << options["mut"].as<std::string>() << "  to tree sequence..." << std::endl;
+
+  ////////// 1. Dump in tree sequence file format ////////
+  
+  //new set of nodes for each tree (this does not compress trees)
+  DumpAsTreeSequence(options["anc"].as<std::string>(), options["mut"].as<std::string>(), options["output"].as<std::string>() + ".trees");
+
+  //ignore branch lengths and combine identical branches in adjacent trees
+  DumpAsTreeSequenceTopoOnly(options["anc"].as<std::string>(), options["mut"].as<std::string>(), options["output"].as<std::string>() + ".topo.trees");
+
+  /////////////////////////////////////////////
+  //Resource Usage
+
+  rusage usage;
+  getrusage(RUSAGE_SELF, &usage);
+
+  std::cerr << "CPU Time spent: " << usage.ru_utime.tv_sec << "." << std::setfill('0') << std::setw(6);
+#ifdef __APPLE__
+  std::cerr << usage.ru_utime.tv_usec << "s; Max Memory usage: " << usage.ru_maxrss/1000000.0 << "Mb." << std::endl;
+#else
+  std::cerr << usage.ru_utime.tv_usec << "s; Max Memory usage: " << usage.ru_maxrss/1000.0 << "Mb." << std::endl;
+#endif
+  std::cerr << "---------------------------------------------------------" << std::endl << std::endl;
+
+}
+
+//////////////////////////////////////////////
 int main(int argc, char* argv[]){
 
   //////////////////////////////////
@@ -281,16 +250,20 @@ int main(int argc, char* argv[]){
 
     Parse(options);
 
-  }else if(!mode.compare("Compress")){
+  }else if(!mode.compare("ParseData")){
 
-    Compress(options);
+    ParseData(options);
+
+  }else if(!mode.compare("ConvertToTreeSequence")){
+
+    ConvertToTreeSequence(options);
 
   }else{
 
     std::cout << "####### error #######" << std::endl;
     std::cout << "Invalid or missing mode." << std::endl;
     std::cout << "Options for --mode are:" << std::endl;
-    std::cout << "Parse, Compress." << std::endl;
+    std::cout << "Parse, ParseData, ConvertToTreeSequence." << std::endl;
 
   }
 

@@ -3,8 +3,9 @@ file(REMOVE_RECURSE
   "CMakeFiles/relateShared.dir/sample.cpp.o"
   "CMakeFiles/relateShared.dir/anc.cpp.o"
   "CMakeFiles/relateShared.dir/mutations.cpp.o"
+  "CMakeFiles/relateShared.dir/tree_sequence.cpp.o"
   "../../../bin/librelateShared.pdb"
-  "../../../bin/librelateShared.dylib"
+  "../../../bin/librelateShared.so"
 )
 
 # Per-language clean rules from dependency scanning.

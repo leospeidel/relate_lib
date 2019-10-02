@@ -149,8 +149,148 @@ MapMutationExact(Tree& tree, Leaves& sequences_carrying_mutations, Muts::iterato
 
 /////////////////////////////////
 
+//convert to tree sequence (new set of nodes for each tree)
 void
 DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_mut, const std::string& filename_output){
+
+  ////////////////////////
+  //read in anc file
+
+  MarginalTree mtr, prev_mtr; //stores marginal trees. mtr.pos is SNP position at which tree starts, mtr.tree stores the tree
+  Muts::iterator it_mut; //iterator for mut file
+  float num_bases_tree_persists = 0.0;
+
+  ////////// 1. Read one tree at a time /////////
+
+  //We open anc file and read one tree at a time. File remains open until all trees have been read OR ancmut.CloseFiles() is called.
+  //The mut file is read once, file is closed after constructor is called.
+  AncMutIterators ancmut(filename_anc, filename_mut);
+
+
+  num_bases_tree_persists = ancmut.FirstSNP(mtr, it_mut);
+  int N = (mtr.tree.nodes.size() + 1)/2.0, root = 2*N - 2, L = ancmut.NumSnps();
+  Data data(N,L);
+  std::vector<float> coordinates(2*data.N-1,0.0);
+  mtr.tree.GetCoordinates(coordinates);
+
+  Mutations mut;
+  mut.Read(filename_mut);
+
+  //........................................................................
+  //Populate ts tables
+
+  int ret;
+  tsk_table_collection_t tables;
+  ret = tsk_table_collection_init(&tables, 0);
+  check_tsk_error(ret);
+
+  tables.sequence_length = (*std::prev(ancmut.mut_end(),1)).pos + 1;
+  for(int i = 0; i < N; i++){
+    tsk_individual_table_add_row(&tables.individuals, 0, NULL, 0 , NULL, 0);
+  }
+
+  //population table
+
+  //sites table
+  char ancestral_allele[1];
+  //tsk_site_table_add_row(&tables.sites, 1, ancestral_allele, sizeof(ancestral_allele), NULL, 0);
+  for(; it_mut != ancmut.mut_end(); it_mut++){
+    ancestral_allele[0] = (*it_mut).mutation_type[0];
+    ret = tsk_site_table_add_row(&tables.sites, (*it_mut).pos, ancestral_allele, 1, NULL, 0);
+    check_tsk_error(ret);
+  }
+
+  for(int i = 0; i < data.N; i++){
+    ret = tsk_node_table_add_row(&tables.nodes, TSK_NODE_IS_SAMPLE, 0, TSK_NULL, i, NULL, 0);
+    check_tsk_error(ret);
+  }
+
+  ///////////////////////////////////////////////////////////////////////////// 
+
+  int pos, snp, pos_end, snp_end, tree_count = 0, node, node_const, site_count = 0;
+  int node_count = data.N, edge_count = 0;
+
+  char derived_allele[1];
+  while(num_bases_tree_persists >= 0.0){
+
+    pos = (*it_mut).pos;
+    if(mtr.pos == 0) pos = 0;
+    snp = mtr.pos;
+
+    tree_count = (*it_mut).tree;
+    node_const = tree_count * (data.N - 1);
+
+    //Mutation table
+    int l = snp;
+    while((*it_mut).tree == tree_count){
+      if((*it_mut).branch.size() == 1){
+        node = *(*it_mut).branch.begin();
+        if(node < N){
+          derived_allele[0] = (*it_mut).mutation_type[2];
+          ret = tsk_mutation_table_add_row(&tables.mutations, l, node, TSK_NULL, derived_allele, 1, NULL, 0);
+          check_tsk_error(ret);
+        }else{
+          derived_allele[0] = (*it_mut).mutation_type[2];
+          ret = tsk_mutation_table_add_row(&tables.mutations, l, node + node_const, TSK_NULL, derived_allele, 1, NULL, 0);
+          check_tsk_error(ret);
+        }
+        site_count++;
+      }
+
+      l++;
+      it_mut++; 
+      if(l == L) break;
+    }
+    snp_end = l;
+    if(snp_end < L){
+      pos_end = (*it_mut).pos;
+    }else{
+      pos_end = (*std::prev(ancmut.mut_end(),1)).pos + 1;
+    }
+
+    //Node table
+    std::vector<Node>::iterator it_node = std::next(mtr.tree.nodes.begin(), data.N);
+    int n = N;
+    for(std::vector<float>::iterator it_coords = std::next(coordinates.begin(), data.N); it_coords != coordinates.end(); it_coords++){   
+      ret = tsk_node_table_add_row(&tables.nodes, 0, *it_coords, TSK_NULL, TSK_NULL, NULL, 0);   
+      check_tsk_error(ret);
+      n++;
+      node_count++;
+    }
+
+    //Edge table
+    for(it_node = mtr.tree.nodes.begin(); it_node != std::prev(mtr.tree.nodes.end(),1); it_node++){
+      node = (*it_node).label;
+      if(node >= data.N) node += node_const;
+      ret = tsk_edge_table_add_row(&tables.edges, pos, pos_end, (*(*it_node).parent).label + node_const, node);    
+      check_tsk_error(ret);
+      edge_count++;
+    }
+
+    num_bases_tree_persists = ancmut.NextTree(mtr, it_mut);
+    mtr.tree.GetCoordinates(coordinates);
+
+  } 
+
+  tsk_table_collection_sort(&tables, NULL, 0);
+  check_tsk_error(ret);
+
+  std::cerr << "Node count; edge count; tree count" << std::endl;
+  std::cerr << node_count << " " << edge_count << " " << tree_count << std::endl;
+
+
+  //////////////////////////
+
+  // Write out the tree sequence
+  ret = tsk_table_collection_dump(&tables, filename_output.c_str(), 0);        
+  check_tsk_error(ret);
+  tsk_table_collection_free(&tables); 
+
+}
+
+//compress by combining equivalent branches (ignores branch lengths)
+void
+DumpAsTreeSequenceTopoOnly(const std::string& filename_anc, const std::string& filename_mut, const std::string& filename_output){
 
   MarginalTree mtr, prev_mtr; //stores marginal trees. mtr.pos is SNP position at which tree starts, mtr.tree stores the tree
   std::vector<Leaves> leaves, prev_leaves;
@@ -381,6 +521,7 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
     edge_count++;
   }
 
+  std::cerr << "Node count; edge count; tree count" << std::endl;
   std::cerr << node_count << " " << edge_count << " " << tree_count << std::endl;
 
   tsk_table_collection_sort(&tables, NULL, 0);
@@ -485,6 +626,7 @@ FindIdenticalNodes(Tree& prev_tr, Tree& tr, std::vector<Leaves>& leaves, std::ve
 
 }
 
+//removes branches with no mutation mapped to it (TODO: this is not yet optimal)
 void
 DumpAsTreeSequenceWithPolytomies(const std::string& filename_anc, const std::string& filename_mut, const std::string& filename_output){
 
@@ -844,14 +986,8 @@ DumpAsTreeSequenceWithPolytomies(const std::string& filename_anc, const std::str
     //these edges don't exist anymore
     if(rewire[n] == n){
 
-      //if(n < N) std::cerr << n << " " <<  prev_mtr.tree.nodes[n].SNP_begin << " " << pos_end << std::endl;
       if(n > 0) assert(convert_nodes_prev[n] != 0);
       int parent_prev = prev_rewire[(*prev_mtr.tree.nodes[n].parent).label];
-      //if(n >= 0){
-      //  std::cerr << convert_nodes_prev[n] << " " <<  prev_mtr.tree.nodes[n].SNP_begin << " " << pos_end << std::endl;
-      //  std::cerr << n << " " << convert_nodes_prev[n] << " " << parent_prev << " " << convert_nodes_prev[parent_prev] << std::endl;
-      //  std::cerr << std::endl;
-      //}
       assert(convert_nodes_prev[parent_prev] != 0);
       ret = tsk_edge_table_add_row(&tables.edges, prev_mtr.tree.nodes[n].SNP_begin, pos_end, convert_nodes_prev[parent_prev], convert_nodes_prev[n]);   
       check_tsk_error(ret);
@@ -859,6 +995,7 @@ DumpAsTreeSequenceWithPolytomies(const std::string& filename_anc, const std::str
     }
   }
 
+  std::cerr << "Node count; edge count; tree count" << std::endl;
   std::cerr << node_count << " " << edge_count << " " << tree_count << std::endl;
 
   tsk_table_collection_sort(&tables, NULL, 0);
@@ -873,6 +1010,7 @@ DumpAsTreeSequenceWithPolytomies(const std::string& filename_anc, const std::str
 
 }
 
+//removes branches with no mutation mapped to it, where mutations are remapped so that data can be recovered exactly (TODO: this is not yet optimal)
 void
 DumpAsTreeSequenceWithPolytomies(const std::string& filename_anc, const std::string& filename_mut, const std::string& filename_haps, const std::string& filename_sample, const std::string& filename_output){
 
@@ -953,7 +1091,6 @@ DumpAsTreeSequenceWithPolytomies(const std::string& filename_anc, const std::str
 
     if(sequences_carrying_mutation.num_leaves > 0 && sequences_carrying_mutation.num_leaves < N){
       int num_b = MapMutationExact(prev_mtr.tree, sequences_carrying_mutation, it_mut);
-      if(bp == 124) std::cerr << num_b << " " << sequences_carrying_mutation.num_leaves << " " << (*it_mut).branch.size() << " " << *(*it_mut).branch.begin() << std::endl;
     }
     it_mut++;
   }
@@ -1097,9 +1234,6 @@ DumpAsTreeSequenceWithPolytomies(const std::string& filename_anc, const std::str
     while((*it_mut).tree == tree_count){
       for(std::deque<int>::iterator it_branch = (*it_mut).branch.begin(); it_branch != (*it_mut).branch.end(); it_branch++){ 
         node = *it_branch;
-        if((*it_mut).pos == 124){
-          std::cerr << node << " " << convert_nodes_prev[node] << " " << prev_leaves[node].num_leaves << std::endl;
-        }
         if(node < N){
           derived_allele[0] = (*it_mut).mutation_type[2];
           ret = tsk_mutation_table_add_row(&tables.mutations, l, node, TSK_NULL, derived_allele, 1, NULL, 0);
@@ -1247,7 +1381,6 @@ DumpAsTreeSequenceWithPolytomies(const std::string& filename_anc, const std::str
         }
         if(prev_rewire[n] == n && convert_nodes_prev[n] == 0){
           convert_nodes_prev[n] = node_count;
-          //if(update_forwards[n] == 0) std::cerr << n << std::endl;
           //assert(update_forwards[n] != 0);
           prev_mtr.tree.nodes[n].SNP_begin = (*it_mut_prev_begin).pos;
           assert(update_forwards[n] != 0);
@@ -1327,14 +1460,8 @@ DumpAsTreeSequenceWithPolytomies(const std::string& filename_anc, const std::str
     //these edges don't exist anymore
     if(rewire[n] == n){
 
-      //if(n < N) std::cerr << n << " " <<  prev_mtr.tree.nodes[n].SNP_begin << " " << pos_end << std::endl;
       if(n > 0) assert(convert_nodes_prev[n] != 0);
       int parent_prev = prev_rewire[(*prev_mtr.tree.nodes[n].parent).label];
-      //if(n >= 0){
-      //  std::cerr << convert_nodes_prev[n] << " " <<  prev_mtr.tree.nodes[n].SNP_begin << " " << pos_end << std::endl;
-      //  std::cerr << n << " " << convert_nodes_prev[n] << " " << parent_prev << " " << convert_nodes_prev[parent_prev] << std::endl;
-      //  std::cerr << std::endl;
-      //}
       assert(convert_nodes_prev[parent_prev] != 0);
       ret = tsk_edge_table_add_row(&tables.edges, prev_mtr.tree.nodes[n].SNP_begin, pos_end, convert_nodes_prev[parent_prev], convert_nodes_prev[n]);   
       check_tsk_error(ret);
@@ -1342,6 +1469,7 @@ DumpAsTreeSequenceWithPolytomies(const std::string& filename_anc, const std::str
     }
   }
 
+  std::cerr << "Node count; edge count; tree count" << std::endl;
   std::cerr << node_count << " " << edge_count << " " << tree_count << std::endl;
 
   tsk_table_collection_sort(&tables, NULL, 0);
