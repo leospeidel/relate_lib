@@ -23,5 +23,5 @@ make
 ## Documentation
 
 Still working on the documentation.
-Please see ./include/example/CMakeLists.txt for how to use this library and ./example/example.sh for how to run the example.
+Please see ./include/example/Example.cpp for example code and ./example/example.sh for how to run the examples.
 

@@ -157,7 +157,7 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
   //read in anc file
 
   MarginalTree mtr, prev_mtr; //stores marginal trees. mtr.pos is SNP position at which tree starts, mtr.tree stores the tree
-  Muts::iterator it_mut; //iterator for mut file
+  Muts::iterator it_mut, it_mut_first; //iterator for mut file
   float num_bases_tree_persists = 0.0;
 
   ////////// 1. Read one tree at a time /////////
@@ -168,6 +168,7 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
 
 
   num_bases_tree_persists = ancmut.FirstSNP(mtr, it_mut);
+  it_mut_first = it_mut;
   int N = (mtr.tree.nodes.size() + 1)/2.0, root = 2*N - 2, L = ancmut.NumSnps();
   Data data(N,L);
   std::vector<float> coordinates(2*data.N-1,0.0);
@@ -207,6 +208,7 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
 
   ///////////////////////////////////////////////////////////////////////////// 
 
+  it_mut = it_mut_first; 
   int pos, snp, pos_end, snp_end, tree_count = 0, node, node_const, site_count = 0;
   int node_count = data.N, edge_count = 0;
 
@@ -626,7 +628,7 @@ FindIdenticalNodes(Tree& prev_tr, Tree& tr, std::vector<Leaves>& leaves, std::ve
 
 }
 
-//removes branches with no mutation mapped to it (TODO: this is not yet optimal)
+//removes branches with no mutation mapped to it (TODO: this is not yet optimal in terms of compression)
 void
 DumpAsTreeSequenceWithPolytomies(const std::string& filename_anc, const std::string& filename_mut, const std::string& filename_output){
 
@@ -1010,7 +1012,7 @@ DumpAsTreeSequenceWithPolytomies(const std::string& filename_anc, const std::str
 
 }
 
-//removes branches with no mutation mapped to it, where mutations are remapped so that data can be recovered exactly (TODO: this is not yet optimal)
+//removes branches with no mutation mapped to it, where mutations are remapped so that data can be recovered exactly (TODO: this is not yet optimal in terms of compression)
 void
 DumpAsTreeSequenceWithPolytomies(const std::string& filename_anc, const std::string& filename_mut, const std::string& filename_haps, const std::string& filename_sample, const std::string& filename_output){
 
@@ -1481,6 +1483,232 @@ DumpAsTreeSequenceWithPolytomies(const std::string& filename_anc, const std::str
   ret = tsk_table_collection_dump(&tables, filename_output.c_str(), 0);        
   check_tsk_error(ret);
   tsk_table_collection_free(&tables); 
+
+}
+
+//convert tree sequence to anc/mut
+void
+ConvertFromTreeSequence(const std::string& filename_anc, const std::string& filename_mut, const std::string& filename_input){
+
+  int ret, iter;
+
+  tsk_treeseq_t ts;
+  tsk_tree_t tree;
+  tsk_site_t *sites;
+  tsk_size_t sites_length;
+  tsk_size_t num_SNPs, N, num_trees;
+  tsk_mutation_t *mutation;
+  tsk_id_t *samples, *stack, *node_conversion;
+  tsk_id_t u, v, root;
+  int j, k, stack_top;
+
+  //load tree sequence
+  ret = tsk_treeseq_load(&ts, filename_input.c_str(), 0);
+  check_tsk_error(ret);
+  //initialise tree
+  ret = tsk_tree_init(&tree, &ts, 0);
+  check_tsk_error(ret);
+  //get sample nodes
+  ret = tsk_treeseq_get_samples(&ts, &samples);
+  //get num sites
+  num_SNPs = tsk_treeseq_get_num_sites(&ts);
+  //get num samples
+  N = tsk_treeseq_get_num_samples(&ts);
+  //get num trees
+  num_trees = tsk_treeseq_get_num_trees(&ts);
+
+  stack           = (tsk_id_t *) malloc(tsk_treeseq_get_num_nodes(&ts) * sizeof(*stack));
+  if (stack == NULL){
+    errx(EXIT_FAILURE, "No memory");
+  }
+  node_conversion = (tsk_id_t *) malloc(tsk_treeseq_get_num_nodes(&ts) * sizeof(*node_conversion));
+  if (node_conversion == NULL){
+    errx(EXIT_FAILURE, "No memory");
+  }
+
+  //anc/mut variables
+  int snp = 0, SNP_begin, SNP_end;
+  int bp  = 0, left_bp, right_bp;
+  int tree_count = 0;
+  int node_count = 0, parent, node, num_children;
+  double t1, t2;
+  std::string allele;
+
+  MarginalTree mtr;
+  Mutations mut;
+
+  mut.info.resize(num_SNPs);
+
+  //count number of trees with at least one SNP
+  num_trees = 0;
+  //forward iteration through tree sequence
+  for(iter = tsk_tree_first(&tree); iter == 1; iter = tsk_tree_next(&tree)){
+
+    //get sites and mutations
+    ret = tsk_tree_get_sites(&tree, &sites, &sites_length);
+    check_tsk_error(ret);
+    //only store tree if it contains at least one site
+    bool include = false;
+    if(sites_length > 0 & !include){  
+      for(j = 0; j < sites_length; j++){
+        if(sites[j].mutations_length == 1 && sites[j].ancestral_state_length == 1){
+          mutation = &sites[j].mutations[0]; //only one mutation
+          if(mutation -> derived_state_length == 1){
+            include = true;
+            break;
+          }
+        }
+      }
+    }
+    if(include) num_trees++;
+
+  }
+
+  std::ofstream os(filename_anc);
+  FILE *fp = std::fopen(filename_anc.c_str(), "w");
+  fprintf(fp, "NUM_HAPLOTYPES %d\n", N);
+  fprintf(fp, "NUM_TREES %d\n", num_trees);
+
+  //forward iteration through tree sequence
+  for(iter = tsk_tree_first(&tree); iter == 1; iter = tsk_tree_next(&tree)){
+
+    //get sites and mutations
+    ret = tsk_tree_get_sites(&tree, &sites, &sites_length);
+    check_tsk_error(ret);
+
+    //only store tree if it contains at least one site
+    bool include = false;
+    if(sites_length > 0 & !include){  
+      for(j = 0; j < sites_length; j++){
+        if(sites[j].mutations_length == 1 && sites[j].ancestral_state_length == 1){
+          mutation = &sites[j].mutations[0]; //only one mutation
+          if(mutation -> derived_state_length == 1){
+            include = true;
+            break;
+          }
+        }
+      }
+    }
+    if(include){
+
+      mtr.pos = snp;
+      mtr.tree.nodes.clear();
+      mtr.tree.nodes.resize(2*N-1); 
+
+      left_bp = tree.left;
+      right_bp = tree.right;
+
+      //get topology of this tree
+      if(tsk_tree_get_num_roots(&tree) > 1){
+        errx(EXIT_FAILURE, "Multiple roots in tree.");
+      }
+      root = tree.left_root;
+      node_count = 2*N-2;
+      node_conversion[root] = node_count;
+      mtr.tree.nodes[node_count].label = node_count;
+      node_count--;
+      stack_top  = 0;
+      stack[stack_top] = root;
+
+      //go from root to leaves
+      //start with 2N-2, decrease for each subsequent node
+      //Need an array saying node x in tree sequence is node y in anc/mut
+
+      while(stack_top >= 0){
+        u = stack[stack_top];
+        stack_top--;
+
+        if(u >= N){
+          parent = node_conversion[u];
+          assert(parent != -1);
+          num_children = 0;
+          for(v = tree.left_child[u]; v != TSK_NULL; v = tree.right_sib[v]) num_children++;
+          //TODO: break polytomies if there are more than 2 children
+          assert(num_children == 2);
+          for(v = tree.left_child[u]; v != TSK_NULL; v = tree.right_sib[v]){
+
+            if(v < N){
+              node_conversion[v] = v;
+              node = v;   
+            }else{
+              node_conversion[v] = node_count;
+              node = node_count;
+              node_count--;
+            }
+
+            mtr.tree.nodes[node].parent    = &mtr.tree.nodes[parent]; 
+            mtr.tree.nodes[node].label     = node; 
+            if(mtr.tree.nodes[parent].child_left == NULL){
+              mtr.tree.nodes[parent].child_left  = &mtr.tree.nodes[node];
+            }else{
+              mtr.tree.nodes[parent].child_right = &mtr.tree.nodes[node];
+            } 
+            tsk_tree_get_time(&tree, v, &t1);
+            tsk_tree_get_time(&tree, tree.parent[v], &t2);
+            mtr.tree.nodes[node].branch_length = t2 - t1;
+            mtr.tree.nodes[node].SNP_begin = snp; //first SNP index
+          } 
+
+        }
+
+        for(v = tree.left_child[u]; v != TSK_NULL; v = tree.right_sib[v]){
+          stack_top++;
+          stack[stack_top] = v;
+        }
+      }
+      assert(node_count == N-1); 
+
+      for(j = 0; j < sites_length; j++){
+        if(sites[j].mutations_length == 1){
+          if(sites[j].ancestral_state_length == 1){
+            mutation = &sites[j].mutations[0]; //only one mutation
+            if(mutation -> derived_state_length == 1){
+              //sites[j].pos, mut.id, mut.node, mut.derived_state_length, mut.derived_state
+              mut.info[snp].snp_id = snp;
+              mut.info[snp].pos    = sites[j].position;
+              mut.info[snp].tree   = tree_count;
+
+              allele.assign(sites[j].ancestral_state, sites[j].ancestral_state_length);
+              mut.info[snp].mutation_type = allele + "/";
+              allele.assign(mutation -> derived_state, mutation -> derived_state_length);
+              mut.info[snp].mutation_type += allele;
+
+              mut.info[snp].branch.resize(1);
+              node                    = node_conversion[mutation -> node];
+              mut.info[snp].branch[0] = node;
+              mut.info[snp].rs_id     = std::to_string(mutation -> id);
+              tsk_tree_get_time(&tree, mutation -> node, &t1);
+              tsk_tree_get_time(&tree, tree.parent[mutation -> node], &t2);
+              mut.info[snp].age_begin = t1;
+              mut.info[snp].age_end   = t2;
+              mtr.tree.nodes[node].num_events += 1.0;
+
+              if(snp > 0){
+                mut.info[snp-1].dist = mut.info[snp].pos - mut.info[snp-1].pos;
+              }
+              snp++;
+            }
+          }
+        }
+      }
+
+      SNP_end = snp-1;
+      mut.info[SNP_end].dist = 1.0;
+      for(std::vector<Node>::iterator it_node = mtr.tree.nodes.begin(); it_node != mtr.tree.nodes.end(); it_node++){
+        (*it_node).SNP_end = SNP_end; //last SNP index 
+      }
+
+      mtr.Dump(fp);
+      tree_count++; 
+    }
+
+  }
+
+  std::fclose(fp);
+
+  //Dump mut file
+  mut.header = "snp;pos_of_snp;dist;rs-id;tree_index;branch_indices;is_not_mapping;is_flipped;age_begin;age_end;ancestral_allele/alternative_allele;";
+  mut.Dump(filename_mut);
 
 }
 
