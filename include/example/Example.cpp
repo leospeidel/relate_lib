@@ -176,100 +176,6 @@ ParseData(cxxopts::Options& options){
 
 }
 
-// In this function, I will convert from anc/mut to tree sequence file format (functions are defined in ./include/src/tree_sequence.hpp)
-void
-ConvertToTreeSequence(cxxopts::Options& options){
-
-  //////////////////////////////////
-  //Program options
-
-  bool help = false;
-  if(!options.count("anc") || !options.count("mut") || !options.count("output")){
-    std::cout << "Not enough arguments supplied." << std::endl;
-    std::cout << "Needed: anc, mut, output." << std::endl;
-    help = true;
-  }
-  if(options.count("help") || help){
-    std::cout << options.help({""}) << std::endl;
-    std::cout << "Example code for converting to tree sequence file format." << std::endl;
-    exit(0);
-  }  
-
-  std::cerr << "---------------------------------------------------------" << std::endl;
-  std::cerr << "Converting " << options["anc"].as<std::string>() << " and " << options["mut"].as<std::string>() << "  to tree sequence..." << std::endl;
-
-  ////////// 1. Dump in tree sequence file format ////////
-  
-  //new set of nodes for each tree (this does not compress trees)
-  DumpAsTreeSequence(options["anc"].as<std::string>(), options["mut"].as<std::string>(), options["output"].as<std::string>() + ".trees");
-
-  //ignore branch lengths and combine identical branches in adjacent trees
-  DumpAsTreeSequenceTopoOnly(options["anc"].as<std::string>(), options["mut"].as<std::string>(), options["output"].as<std::string>() + ".topo.trees");
-
-  /////////////////////////////////////////////
-  //Resource Usage
-
-  rusage usage;
-  getrusage(RUSAGE_SELF, &usage);
-
-  std::cerr << "CPU Time spent: " << usage.ru_utime.tv_sec << "." << std::setfill('0') << std::setw(6);
-#ifdef __APPLE__
-  std::cerr << usage.ru_utime.tv_usec << "s; Max Memory usage: " << usage.ru_maxrss/1000000.0 << "Mb." << std::endl;
-#else
-  std::cerr << usage.ru_utime.tv_usec << "s; Max Memory usage: " << usage.ru_maxrss/1000.0 << "Mb." << std::endl;
-#endif
-  std::cerr << "---------------------------------------------------------" << std::endl << std::endl;
-
-}
-
-// In this function, I will convert from anc/mut to tree sequence file format (functions are defined in ./include/src/tree_sequence.hpp)
-void
-ConvertFromTreeSequence(cxxopts::Options& options){
-
-  //////////////////////////////////
-  //Program options
-
-  bool help = false;
-  if(!options.count("anc") || !options.count("mut") || !options.count("input")){
-    std::cout << "Not enough arguments supplied." << std::endl;
-    std::cout << "Needed: anc, mut, input." << std::endl;
-    help = true;
-  }
-  if(options.count("help") || help){
-    std::cout << options.help({""}) << std::endl;
-    std::cout << "Example code for converting from tree sequence file format." << std::endl;
-    exit(0);
-  }  
-
-  std::cerr << "---------------------------------------------------------" << std::endl;
-  std::cerr << "Converting " << options["input"].as<std::string>() << " to " << options["anc"].as<std::string>() << " and " << options["mut"].as<std::string>() << "..." << std::endl;
-
-  ////////// 1. Dump in tree sequence file format ////////
-  
-  //new set of nodes for each tree (this does not compress trees)
-  ConvertFromTreeSequence(options["anc"].as<std::string>(), options["mut"].as<std::string>(), options["input"].as<std::string>());
-
-  AncesTree anc;
-  anc.Read(options["anc"].as<std::string>());
-  anc.AssociateEquivalentBranches();
-  anc.Dump(options["anc"].as<std::string>());
-
-  /////////////////////////////////////////////
-  //Resource Usage
-
-  rusage usage;
-  getrusage(RUSAGE_SELF, &usage);
-
-  std::cerr << "CPU Time spent: " << usage.ru_utime.tv_sec << "." << std::setfill('0') << std::setw(6);
-#ifdef __APPLE__
-  std::cerr << usage.ru_utime.tv_usec << "s; Max Memory usage: " << usage.ru_maxrss/1000000.0 << "Mb." << std::endl;
-#else
-  std::cerr << usage.ru_utime.tv_usec << "s; Max Memory usage: " << usage.ru_maxrss/1000.0 << "Mb." << std::endl;
-#endif
-  std::cerr << "---------------------------------------------------------" << std::endl << std::endl;
-
-}
-
 // In this function, I will reassociate equivalent branches in anc/mut
 void
 AssociateEquivalentBranches(cxxopts::Options& options){
@@ -358,7 +264,7 @@ int main(int argc, char* argv[]){
 
   //////////////////////////////////
   //Program options  
-  cxxopts::Options options("RelateExtract");
+  cxxopts::Options options("Example");
   options.add_options()
     ("help", "Print help.")
     ("mode", "Choose which part of the algorithm to run.", cxxopts::value<std::string>())
@@ -386,14 +292,6 @@ int main(int argc, char* argv[]){
 
     ParseData(options);
 
-  }else if(!mode.compare("ConvertToTreeSequence")){
-
-    ConvertToTreeSequence(options);
-
-  }else if(!mode.compare("ConvertFromTreeSequence")){
-
-    ConvertFromTreeSequence(options);
-
   }else if(!mode.compare("AssociateEquivalentBranches")){
 
     AssociateEquivalentBranches(options);
@@ -403,7 +301,7 @@ int main(int argc, char* argv[]){
     std::cout << "####### error #######" << std::endl;
     std::cout << "Invalid or missing mode." << std::endl;
     std::cout << "Options for --mode are:" << std::endl;
-    std::cout << "Parse, ParseData, ConvertToTreeSequence, ConvertFromTreeSequence, AssociateEquivalentBranches." << std::endl;
+    std::cout << "Parse, ParseData, AssociateEquivalentBranches." << std::endl;
 
   }
 

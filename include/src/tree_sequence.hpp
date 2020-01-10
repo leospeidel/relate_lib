@@ -4,6 +4,7 @@
 #include <iostream>
 #include <err.h>
 #include <deque>
+#include <random>
 
 #include "gzstream.hpp"
 #include "data.hpp"
@@ -1488,9 +1489,13 @@ DumpAsTreeSequenceWithPolytomies(const std::string& filename_anc, const std::str
 
 //convert tree sequence to anc/mut
 void
-ConvertFromTreeSequence(const std::string& filename_anc, const std::string& filename_mut, const std::string& filename_input){
+ConvertFromTreeSequence(const std::string& filename_anc, const std::string& filename_mut, const std::string& filename_input, bool no_bl, const int seed = std::time(0) + getpid()){
 
   int ret, iter;
+
+  std::mt19937 rng;
+  rng.seed(seed);
+  std::uniform_real_distribution<double> dist(0,1);
 
   tsk_treeseq_t ts;
   tsk_tree_t tree;
@@ -1623,31 +1628,123 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
           assert(parent != -1);
           num_children = 0;
           for(v = tree.left_child[u]; v != TSK_NULL; v = tree.right_sib[v]) num_children++;
-          //TODO: break polytomies if there are more than 2 children
-          assert(num_children == 2);
-          for(v = tree.left_child[u]; v != TSK_NULL; v = tree.right_sib[v]){
 
-            if(v < N){
-              node_conversion[v] = v;
-              node = v;   
-            }else{
-              node_conversion[v] = node_count;
-              node = node_count;
-              node_count--;
+          if(num_children == 2){
+            for(v = tree.left_child[u]; v != TSK_NULL; v = tree.right_sib[v]){
+
+              if(v < N){
+                node_conversion[v] = v;
+                node = v;   
+              }else{
+                node_conversion[v] = node_count;
+                node = node_count;
+                node_count--;
+              }
+
+              mtr.tree.nodes[node].parent    = &mtr.tree.nodes[parent]; 
+              mtr.tree.nodes[node].label     = node; 
+              if(mtr.tree.nodes[parent].child_left == NULL){
+                mtr.tree.nodes[parent].child_left  = &mtr.tree.nodes[node];
+              }else{
+                mtr.tree.nodes[parent].child_right = &mtr.tree.nodes[node];
+              } 
+              tsk_tree_get_time(&tree, v, &t1);
+              tsk_tree_get_time(&tree, tree.parent[v], &t2);
+              mtr.tree.nodes[node].branch_length = t2 - t1;
+              mtr.tree.nodes[node].SNP_begin = snp; //first SNP index
+            } 
+          }else{
+            //assert(num_children == 2);
+            //break polytomies at random
+            std::vector<tsk_id_t> children(num_children);
+            int i = 0;
+            int tmp_node_count, num_children_total = num_children;
+            for(v = tree.left_child[u]; v != TSK_NULL; v = tree.right_sib[v]){ 
+              if(v < N){
+                node_conversion[v] = v;
+              }else{
+                i++;
+              }
             }
 
-            mtr.tree.nodes[node].parent    = &mtr.tree.nodes[parent]; 
-            mtr.tree.nodes[node].label     = node; 
-            if(mtr.tree.nodes[parent].child_left == NULL){
-              mtr.tree.nodes[parent].child_left  = &mtr.tree.nodes[node];
-            }else{
-              mtr.tree.nodes[parent].child_right = &mtr.tree.nodes[node];
-            } 
-            tsk_tree_get_time(&tree, v, &t1);
-            tsk_tree_get_time(&tree, tree.parent[v], &t2);
-            mtr.tree.nodes[node].branch_length = t2 - t1;
-            mtr.tree.nodes[node].SNP_begin = snp; //first SNP index
-          } 
+            tmp_node_count = node_count - i - (num_children - 2) + 1;
+            int min_node_count = tmp_node_count, max_node_count = node_count; //for debugging
+
+            i = 0;
+            for(v = tree.left_child[u]; v != TSK_NULL; v = tree.right_sib[v]){ 
+              if(v >= N){
+                node_conversion[v] = tmp_node_count;
+                tmp_node_count++;
+                node_count--;
+              }
+              children[i] = node_conversion[v];
+              i++;
+            }
+
+            //choose two children at random, in children, replace one of them  
+            int childA, childB, ichildA, ichildB, parent_all; //assume randomly chosen
+            parent_all = parent;
+
+            tsk_tree_get_time(&tree, tree.left_child[u], &t1);
+            tsk_tree_get_time(&tree, u, &t2);
+
+            parent = tmp_node_count;
+            tmp_node_count++;
+            node_count--;
+            while(num_children > 2){
+              ichildA = dist(rng)*num_children;
+              ichildB = dist(rng)*(num_children - 1);
+              if(ichildB >= ichildA) ichildB++;
+
+              childA  = children[ichildA];
+              childB  = children[ichildB];
+
+              mtr.tree.nodes[childA].parent    = &mtr.tree.nodes[parent]; 
+              mtr.tree.nodes[childA].label     = childA; 
+              mtr.tree.nodes[parent].child_left  = &mtr.tree.nodes[childA];
+              mtr.tree.nodes[childA].branch_length = 0.0;
+              mtr.tree.nodes[childA].SNP_begin = snp; //first SNP index
+
+              mtr.tree.nodes[childB].parent    = &mtr.tree.nodes[parent]; 
+              mtr.tree.nodes[childB].label     = childB; 
+              mtr.tree.nodes[parent].child_left  = &mtr.tree.nodes[childB];
+              mtr.tree.nodes[childB].branch_length = 0.0;
+              mtr.tree.nodes[childB].SNP_begin = snp; //first SNP index
+
+              if(ichildA < ichildB){
+                children[ichildA] = parent;
+                children[ichildB] = children[num_children-1];
+                num_children--;
+              }else{              
+                children[ichildB] = parent;
+                children[ichildA] = children[num_children-1];
+                num_children--;
+              }
+              parent = tmp_node_count;
+              tmp_node_count++;
+              node_count--;
+            }
+            node_count++;
+            tmp_node_count--;
+            assert(node_count == min_node_count - 1);
+            assert(tmp_node_count == max_node_count + 1);
+            parent = parent_all;
+            childA = children[0];
+            childB = children[1];
+
+            mtr.tree.nodes[childA].parent    = &mtr.tree.nodes[parent]; 
+            mtr.tree.nodes[childA].label     = childA; 
+            mtr.tree.nodes[parent].child_left  = &mtr.tree.nodes[childA];
+            mtr.tree.nodes[childA].branch_length = t2 - t1;
+            mtr.tree.nodes[childA].SNP_begin = snp; //first SNP index
+
+            mtr.tree.nodes[childB].parent    = &mtr.tree.nodes[parent]; 
+            mtr.tree.nodes[childB].label     = childB; 
+            mtr.tree.nodes[parent].child_left  = &mtr.tree.nodes[childB];
+            mtr.tree.nodes[childB].branch_length = t2 - t1;
+            mtr.tree.nodes[childB].SNP_begin = snp; //first SNP index
+
+          }
 
         }
 
@@ -1657,6 +1754,23 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
         }
       }
       assert(node_count == N-1); 
+
+      std::vector<float> coords(2*N-1, 0.0);
+      if(no_bl){
+      
+        int num_lin, parent_num_lin; 
+        assert(coords.size() == 2*N-1);
+        for(int i = N; i < 2*N-1; i++){
+          num_lin = (2*N - i);
+          coords[i] = coords[i-1] + 15000.0/(num_lin * (num_lin - 1.0));
+        }
+
+        for(int i = 0; i < 2*N-2; i++){
+          parent = (*mtr.tree.nodes[i].parent).label;
+          mtr.tree.nodes[i].branch_length = (coords[parent] - coords[i]);      
+        } 
+      
+      }
 
       for(j = 0; j < sites_length; j++){
         if(sites[j].mutations_length == 1){
@@ -1677,10 +1791,15 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
               node                    = node_conversion[mutation -> node];
               mut.info[snp].branch[0] = node;
               mut.info[snp].rs_id     = std::to_string(mutation -> id);
-              tsk_tree_get_time(&tree, mutation -> node, &t1);
-              tsk_tree_get_time(&tree, tree.parent[mutation -> node], &t2);
-              mut.info[snp].age_begin = t1;
-              mut.info[snp].age_end   = t2;
+              if(!no_bl){
+                tsk_tree_get_time(&tree, mutation -> node, &t1);
+                tsk_tree_get_time(&tree, tree.parent[mutation -> node], &t2);
+                mut.info[snp].age_begin = t1;
+                mut.info[snp].age_end   = t2;
+              }else{
+                mut.info[snp].age_begin = coords[node];
+                mut.info[snp].age_end   = coords[(*mtr.tree.nodes[node].parent).label];             
+              }
               mtr.tree.nodes[node].num_events += 1.0;
 
               if(snp > 0){
