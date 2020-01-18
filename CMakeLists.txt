@@ -1,6 +1,7 @@
 project                     (Relate)
 cmake_minimum_required      (VERSION 3.1)
 
+set(CMAKE_C_FLAGS "-std=c99")
 set(CMAKE_CXX_FLAGS "-O3")        ## Optimize
 set (CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -39,7 +40,7 @@ add_subdirectory(${CONVERT_DIR})
 
 # tests
 add_executable(Tests ${TEST_DIR}/Tests.cpp)
-target_link_libraries(Tests relateStatic UnitTest)
+target_link_libraries(Tests relateShared UnitTest)
 
 enable_testing()
 add_test(UnitTest ${CMAKE_BINARY_DIR}/Tests)

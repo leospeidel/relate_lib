@@ -1554,7 +1554,7 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
     check_tsk_error(ret);
     //only store tree if it contains at least one site
     bool include = false;
-    if(sites_length > 0 & !include){  
+    if(sites_length > 0 && !include){  
       for(j = 0; j < sites_length; j++){
         if(sites[j].mutations_length == 1 && sites[j].ancestral_state_length == 1){
           mutation = &sites[j].mutations[0]; //only one mutation
@@ -1583,7 +1583,7 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 
     //only store tree if it contains at least one site
     bool include = false;
-    if(sites_length > 0 & !include){  
+    if(sites_length > 0 && !include){  
       for(j = 0; j < sites_length; j++){
         if(sites[j].mutations_length == 1 && sites[j].ancestral_state_length == 1){
           mutation = &sites[j].mutations[0]; //only one mutation
