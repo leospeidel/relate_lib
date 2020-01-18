@@ -85,27 +85,11 @@ haps::ReadSNP(std::vector<char>& sequence, int& bp){
 
   //read a line, extract bp and fp_props
   //snp;pos_of_snp;rs-id;ancestral_allele/alternative_allele;downstream_allele;upstream_allele;All;
-  fscanf(fp, "%d %s %d %c %c", &chr, rsid, &bp, &ancestral, &alternative);
+  fscanf(fp, "%s %s %d %s %s", &chr, rsid, &bp, &ancestral, &alternative);
 
   assert(sequence.size() > 0);
   //read haplotypes into sequence
-  std::vector<char>::iterator it_seq = sequence.begin(); 
-  /*
-  int d;
-  fgetc(fp);
-  d = fgetc(fp);
-  while(d != '\n' && d != EOF){
-    if(d == '0'){
-      *it_seq = '0';
-    }else{
-      *it_seq = '1';
-    }
-    d = fgetc(fp);
-    if(d == '\n' || d == EOF) break;
-    d = fgetc(fp);
-    it_seq++;
-  }
-  */
+  std::vector<char>::iterator it_seq = sequence.begin();  
 
   fgets(line, 2*N+10, fp);
   char d = line[0];
@@ -130,7 +114,7 @@ haps::DumpSNP(std::vector<char>& sequence, int bp, FILE* fp_out){
 
   //read a line, extract bp and fp_props
   //snp;pos_of_snp;rs-id;ancestral_allele/alternative_allele;downstream_allele;upstream_allele;All;
-  fprintf(fp_out, "%d %s %d %c %c", chr, rsid, bp, ancestral, alternative);
+  fprintf(fp_out, "%s %s %d %s %s", chr, rsid, bp, ancestral, alternative);
 
   //read haplotypes into sequence
   std::vector<char>::iterator it_seq = sequence.begin(); 

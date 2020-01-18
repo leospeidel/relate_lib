@@ -1779,7 +1779,7 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
             if(mutation -> derived_state_length == 1){
               //sites[j].pos, mut.id, mut.node, mut.derived_state_length, mut.derived_state
               mut.info[snp].snp_id = snp;
-              mut.info[snp].pos    = sites[j].position;
+              mut.info[snp].pos    = round(sites[j].position);
               mut.info[snp].tree   = tree_count;
 
               allele.assign(sites[j].ancestral_state, sites[j].ancestral_state_length);
