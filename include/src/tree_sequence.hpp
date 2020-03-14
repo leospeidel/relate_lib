@@ -1571,7 +1571,20 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 
   std::ofstream os(filename_anc);
   FILE *fp = std::fopen(filename_anc.c_str(), "w");
-  fprintf(fp, "NUM_HAPLOTYPES %d\n", N);
+  fprintf(fp, "NUM_HAPLOTYPES %d ", N);
+  tsk_tree_first(&tree);
+  std::vector<double> sample_ages(N, 0.0);
+  bool any_ancient = false;
+  for(int n = 0; n < N; n++){
+    tsk_tree_get_time(&tree, n, &sample_ages[n]);
+    if(sample_ages[n] > 0) any_ancient = true;
+  }
+  if(any_ancient){
+    for(int n = 0; n < N; n++){
+      fprintf(fp, "%f ", t1);
+    }
+  }
+  fprintf(fp, "\n");
   fprintf(fp, "NUM_TREES %d\n", num_trees);
 
   //forward iteration through tree sequence

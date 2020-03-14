@@ -289,7 +289,7 @@ Mutations::Dump(const std::string& filename){
 
 //////////////////////////////////////////
 
-AncMutIterators::AncMutIterators(std::string filename_anc, std::string filename_mut){
+AncMutIterators::AncMutIterators(const std::string& filename_anc, const std::string& filename_mut): filename_anc(filename_anc), filename_mut(filename_mut){
   is.open(filename_anc);
   if(is.fail()) is.open(filename_anc + ".gz");
   if(is.fail()){
@@ -297,11 +297,31 @@ AncMutIterators::AncMutIterators(std::string filename_anc, std::string filename_
     exit(1);
   }
 
-  is.ignore(256, ' ');
-  is >> N;
-  is.ignore(256, ' ');
-  is >> num_trees;
-  assert(getline(is, line));
+  //std::istringstream is_header, is_header2;
+
+  std::string line, tmp;
+  //read num_haplotypes
+  getline(is, line);
+  std::istringstream is_header(line);
+  is_header >> tmp;
+  is_header >> N;
+
+  //read sample ages
+  sample_ages.resize(N, 0.0);
+  std::vector<double>::iterator it_sample_ages = sample_ages.begin();
+  int i = 0;
+  while(is_header >> *it_sample_ages){
+    it_sample_ages++;
+    i++;
+    if(it_sample_ages == sample_ages.end()) break;
+  }
+  if(i != N) sample_ages.clear();
+
+  //read num trees
+  getline(is, line);
+  std::istringstream is_header2(line);
+  is_header2 >> tmp;
+  is_header2 >> num_trees;
 
   mut.Read(filename_mut);
   pit_mut           = mut.info.begin();
@@ -310,7 +330,10 @@ AncMutIterators::AncMutIterators(std::string filename_anc, std::string filename_
 }
 
 void
-AncMutIterators::OpenFiles(std::string filename_anc, std::string filename_mut){
+AncMutIterators::OpenFiles(const std::string& i_filename_anc, const std::string& i_filename_mut){
+
+  filename_anc = i_filename_anc;
+  filename_mut = i_filename_mut;
 
   if(is.rdbuf() -> is_open()) is.close(); //close if stream is still open
 
@@ -321,11 +344,32 @@ AncMutIterators::OpenFiles(std::string filename_anc, std::string filename_mut){
     exit(1);
   }
 
-  is.ignore(256, ' ');
-  is >> N;
-  is.ignore(256, ' ');
-  is >> num_trees;
-  assert(getline(is, line));
+  std::istringstream is_header;
+
+  std::string line, tmp;
+  //read num_haplotypes
+  getline(is, line);
+  is_header.str(line);
+  is_header >> tmp;
+  is_header >> N;
+
+  //read sample ages
+  sample_ages.resize(N);
+  std::vector<double>::iterator it_sample_ages = sample_ages.begin();
+  int i = 0;
+  while(is_header >> *it_sample_ages){
+    it_sample_ages++;
+    i++;
+    if(it_sample_ages == sample_ages.end()) break;
+  }
+  if(i != N) sample_ages.clear();
+
+  //read num trees
+  getline(is, line);
+  is_header.str(line);
+  is_header.clear();
+  is_header >> tmp;
+  is_header >> num_trees;
 
   mut.Read(filename_mut);
   pit_mut           = mut.info.begin();
@@ -341,7 +385,12 @@ AncMutIterators::NextTree(MarginalTree& mtr, Muts::iterator& it_mut){
     return(-1.0); //signals that we reached last tree
   }
   assert(getline(is, line));
-  mtr.Read(line, N); //read marginal tree
+  //read marginal tree
+  if(sample_ages.size() > 0){
+    mtr.Read(line, N, sample_ages);
+  }else{
+    mtr.Read(line, N);
+  }
   tree_index_in_anc++;
 
   //pit_mut is pointing to first SNP in new tree already
@@ -381,6 +430,12 @@ AncMutIterators::NextTree(MarginalTree& mtr, Muts::iterator& it_mut){
 
 double
 AncMutIterators::FirstSNP(MarginalTree& mtr, Muts::iterator& it_mut){
+
+  if(tree_index_in_anc > 0){ //need to reopen file
+    is.close();
+    OpenFiles(filename_anc, filename_mut);
+    NextTree(mtr, it_mut);
+  }
 
   it_mut = mut.info.begin();
 

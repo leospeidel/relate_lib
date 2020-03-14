@@ -103,6 +103,9 @@ class haps{
       line = (char*) malloc(2*N+10);
 
     }
+    ~haps(){
+      free(line);
+    }
 
     void ReadSNP(std::vector<char>& sequence, int& bp); //gets hap info for SNP
     void DumpSNP(std::vector<char>& sequence, int bp, FILE* fp_out); //dumps hap info for SNP

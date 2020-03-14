@@ -105,6 +105,11 @@ haps::ReadSNP(std::vector<char>& sequence, int& bp){
     i++;
     d = line[i];
   }
+  if(it_seq != sequence.end()){
+    std::cerr << chr << " " << rsid << " " << bp << " " << ancestral << " " << alternative << std::endl;
+    std::cerr << line << " " << i << std::endl;
+    std::cerr << *it_seq << std::endl;
+  }
   assert(it_seq == sequence.end());
 
 }
