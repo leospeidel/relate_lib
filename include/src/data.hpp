@@ -14,7 +14,7 @@
 #include <string.h>
 #include <cassert>
 
-class gzip{
+class mgzip{
 
   private:
 
@@ -23,7 +23,7 @@ class gzip{
 
   public:
 
-   gzip(){};
+   mgzip(){};
 
    //function that takes in a file pointer, filename and opens the file
    FILE* open(const char* filename, const char* mode);
@@ -62,7 +62,7 @@ class haps{
 
     int N, L;
     FILE* fp;
-    gzip g; 
+    mgzip g; 
     char* line;
 
   public:

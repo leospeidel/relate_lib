@@ -4,7 +4,7 @@
 static double lower_bound = 1e-10;
 
 FILE*
-gzip::open(const char* filename, const char* mode){
+mgzip::open(const char* filename, const char* mode){
 
   //if(mode != "r" || mode != "rb"){
   //  std::cerr << "Mode " << mode << " is currently not supported" << std::endl;
@@ -67,7 +67,7 @@ gzip::open(const char* filename, const char* mode){
 }
 
 void
-gzip::close(FILE* fp){
+mgzip::close(FILE* fp){
   if(is_gzipped){
     pclose(fp);
   }else{
@@ -133,7 +133,7 @@ haps::DumpSNP(std::vector<char>& sequence, int bp, FILE* fp_out){
 ////////////////////////////
 map::map(const char* filename){
 
-  gzip g;
+  mgzip g;
 
   fp = g.open(filename, "r");
   assert(fp);
