@@ -1581,7 +1581,7 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
   }
   if(any_ancient){
     for(int n = 0; n < N; n++){
-      fprintf(fp, "%f ", t1);
+      fprintf(fp, "%f ", sample_ages[n]);
     }
   }
   fprintf(fp, "\n");
@@ -1839,6 +1839,7 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
   std::fclose(fp);
 
   //Dump mut file
+  mut.info.resize(snp);
   mut.header = "snp;pos_of_snp;dist;rs-id;tree_index;branch_indices;is_not_mapping;is_flipped;age_begin;age_end;ancestral_allele/alternative_allele;";
   mut.Dump(filename_mut);
 

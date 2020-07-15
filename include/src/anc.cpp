@@ -283,11 +283,7 @@ Tree::TraverseTreeToGetCoordinates(Node& n, std::vector<float>& coordinates){
 
     TraverseTreeToGetCoordinates(*n.child_left, coordinates);
     TraverseTreeToGetCoordinates(*n.child_right, coordinates);
-    coordinates[n.label] = coordinates[(*n.child_left).label] + (*n.child_left).branch_length;  
-
-    if(coordinates[n.label] < coordinates[(*n.child_right).label]){
-      coordinates[n.label] = coordinates[(*n.child_right).label];
-    }
+    coordinates[n.label] = std::max(coordinates[(*n.child_right).label] + (*n.child_right).branch_length, coordinates[(*n.child_left).label] + (*n.child_left).branch_length);  
 
   }else{
     coordinates[n.label] = 0.0;
@@ -302,11 +298,7 @@ Tree::TraverseTreeToGetCoordinates_sample_age(Node& n, std::vector<float>& coord
 
     TraverseTreeToGetCoordinates_sample_age(*n.child_left, coordinates);
     TraverseTreeToGetCoordinates_sample_age(*n.child_right, coordinates);
-    coordinates[n.label] = coordinates[(*n.child_left).label] + (*n.child_left).branch_length;  
-
-    if(coordinates[n.label] < coordinates[(*n.child_right).label]){
-      coordinates[n.label] = coordinates[(*n.child_right).label];
-    }
+    coordinates[n.label] = std::max(coordinates[(*n.child_right).label] + (*n.child_right).branch_length, coordinates[(*n.child_left).label] + (*n.child_left).branch_length);  
 
   }else{
     assert(n.label < (*sample_ages).size());

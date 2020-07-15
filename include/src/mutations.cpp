@@ -81,7 +81,14 @@ Mutations::Read(igzstream& is){
       i++;
     }
     i++;
-    info[snp].snp_id = std::stoi(inread);
+    try{
+      info[snp].snp_id = std::stoi(inread);
+    }
+    catch(...){
+      std::cerr << "Error reading following line in mut file:" << std::endl;
+      std::cerr << line << std::endl;
+      exit(1);
+    }
 
     //pos_of_snp
     inread.clear();
@@ -90,8 +97,14 @@ Mutations::Read(igzstream& is){
       i++;
     }
     i++;
-    info[snp].pos = std::stoi(inread);
-
+    try{
+      info[snp].pos = std::stoi(inread);
+    }
+    catch(...){
+      std::cerr << "Error reading following line in mut file:" << std::endl;
+      std::cerr << line << std::endl;
+      exit(1);
+    }
     //dist_to_next_snp
 
     inread.clear();
@@ -100,7 +113,14 @@ Mutations::Read(igzstream& is){
       i++;
     }
     i++;
-    info[snp].dist = std::stoi(inread);
+    try{
+      info[snp].dist = std::stoi(inread);
+    }
+    catch(...){
+      std::cerr << "Error reading following line in mut file:" << std::endl;
+      std::cerr << line << std::endl;
+      exit(1);
+    }
 
     //rs-id
     inread.clear();
@@ -116,7 +136,14 @@ Mutations::Read(igzstream& is){
       inread += line[i];
       i++;
     }
-    info[snp].tree = std::stoi(inread);
+    try{
+      info[snp].tree = std::stoi(inread);
+    }
+    catch(...){
+      std::cerr << "Error reading following line in mut file:" << std::endl;
+      std::cerr << line << std::endl;
+      exit(1);
+    }
     inread.clear();
 
     do{
@@ -126,7 +153,14 @@ Mutations::Read(igzstream& is){
         i++;
       }
       if(inread.size() > 0){ 
-        info[snp].branch.push_back(std::stoi(inread));
+        try{
+          info[snp].branch.push_back(std::stoi(inread));
+        }
+        catch(...){
+          std::cerr << "Error reading following line in mut file:" << std::endl;
+          std::cerr << line << std::endl;
+          exit(1);
+        }
         inread.clear();
       }
     }while(line[i] != ';');
@@ -138,7 +172,14 @@ Mutations::Read(igzstream& is){
       inread += line[i];
       i++;
     } 
-    info[snp].flipped = std::stoi(inread);
+    try{
+      info[snp].flipped = std::stoi(inread);
+    }
+    catch(...){
+      std::cerr << "Error reading following line in mut file:" << std::endl;
+      std::cerr << line << std::endl;
+      exit(1);
+    }
     inread.clear();
     i++;
 
@@ -191,7 +232,14 @@ Mutations::Read(igzstream& is){
             i++;
           } 
           i++;
+          try{
           info[snp].freq.push_back(std::stoi(inread));
+          }
+          catch(...){
+            std::cerr << "Error reading following line in mut file:" << std::endl;
+            std::cerr << line << std::endl;
+            exit(1);
+          }
         }
       }
 
