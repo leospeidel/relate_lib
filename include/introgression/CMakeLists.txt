@@ -1,0 +1,2 @@
+add_executable(Introgression Introgression.cpp)
+target_link_libraries(Introgression relateStatic)

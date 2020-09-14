@@ -258,7 +258,6 @@ AssociateEquivalentBranches(cxxopts::Options& options){
 
 }
 
-
 //////////////////////////////////////////////
 int main(int argc, char* argv[]){
 

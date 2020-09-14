@@ -21,6 +21,7 @@ set(GZSTREAM_DIR ${CMAKE_SOURCE_DIR}/include/src/gzstream)
 set(TSKIT_DIR ${CMAKE_SOURCE_DIR}/include/src/tskit)
 set(EXAMPLE_DIR ${CMAKE_SOURCE_DIR}/include/example)
 set(CONVERT_DIR ${CMAKE_SOURCE_DIR}/include/convert)
+set(INTROGRESSION_DIR ${CMAKE_SOURCE_DIR}/include/introgression)
 
 #add_definitions(-static)
 #set(CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE} -static")
@@ -37,6 +38,7 @@ add_subdirectory(${TSKIT_DIR})
 add_subdirectory(${TEST_DIR})
 add_subdirectory(${EXAMPLE_DIR})
 add_subdirectory(${CONVERT_DIR})
+add_subdirectory(${INTROGRESSION_DIR})
 
 # tests
 add_executable(Tests ${TEST_DIR}/Tests.cpp)

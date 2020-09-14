@@ -94,10 +94,12 @@ ConvertFromTreeSequence(cxxopts::Options& options){
   //new set of nodes for each tree (this does not compress trees)
   ConvertFromTreeSequence(options["anc"].as<std::string>(), options["mut"].as<std::string>(), options["input"].as<std::string>(), no_branch_lengths, seed);
 
+  if(1){
   AncesTree anc;
   anc.Read(options["anc"].as<std::string>());
   anc.AssociateEquivalentBranches();
   anc.Dump(options["anc"].as<std::string>());
+  }
 
   /////////////////////////////////////////////
   //Resource Usage
