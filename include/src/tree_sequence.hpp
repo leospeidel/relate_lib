@@ -173,8 +173,7 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
   int N = (mtr.tree.nodes.size() + 1)/2.0, root = 2*N - 2, L = ancmut.NumSnps();
   Data data(N,L);
   std::vector<float> coordinates(2*data.N-1,0.0);
-  mtr.tree.GetCoordinates(coordinates);
-
+ 
   Mutations mut;
   mut.Read(filename_mut);
 
@@ -202,19 +201,39 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
     check_tsk_error(ret);
   }
 
-  for(int i = 0; i < data.N; i++){
-    ret = tsk_node_table_add_row(&tables.nodes, TSK_NODE_IS_SAMPLE, 0, TSK_NULL, i, NULL, 0);
-    check_tsk_error(ret);
+  if(ancmut.sample_ages.size() > 0){
+    for(int i = 0; i < data.N; i++){
+      ret = tsk_node_table_add_row(&tables.nodes, TSK_NODE_IS_SAMPLE, ancmut.sample_ages[i], TSK_NULL, i, NULL, 0);
+      check_tsk_error(ret);
+    }
+  }else{
+    for(int i = 0; i < data.N; i++){
+      ret = tsk_node_table_add_row(&tables.nodes, TSK_NODE_IS_SAMPLE, 0, TSK_NULL, i, NULL, 0);
+      check_tsk_error(ret);
+    }
   }
 
   ///////////////////////////////////////////////////////////////////////////// 
 
   it_mut = it_mut_first; 
-  int pos, snp, pos_end, snp_end, tree_count = 0, node, node_const, site_count = 0;
+  int pos, snp, pos_end, snp_end, tree_count = 0, node, node_const, site_count = 0, count = 0;
   int node_count = data.N, edge_count = 0;
 
   char derived_allele[1];
   while(num_bases_tree_persists >= 0.0){
+
+    mtr.tree.GetCoordinates(coordinates);
+    for(int i = 0; i < mtr.tree.nodes.size()-1; i++){
+      if(!(coordinates[(*mtr.tree.nodes[i].parent).label] - coordinates[i] > 0.0)){
+        int parent = (*mtr.tree.nodes[i].parent).label, child = i;
+        while(coordinates[parent] - coordinates[child] < 1e-5){
+          coordinates[parent] = coordinates[child] + 1e-5;
+          if(parent == root) break;
+          child  = parent;
+          parent = (*mtr.tree.nodes[parent].parent).label;
+        }
+      }
+    }
 
     pos = (*it_mut).pos;
     if(mtr.pos == 0) pos = 0;
@@ -271,7 +290,7 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
     }
 
     num_bases_tree_persists = ancmut.NextTree(mtr, it_mut);
-    mtr.tree.GetCoordinates(coordinates);
+    count++;
 
   } 
 
