@@ -173,6 +173,9 @@ fasta::Read(const std::string filename){
 
   igzstream is(filename);
   if(is.fail()){
+    is.open(filename + ".gz");
+  }
+  if(is.fail()){
     std::cerr << "Error while opening file " << filename << "." << std::endl;
     exit(1);
   }
