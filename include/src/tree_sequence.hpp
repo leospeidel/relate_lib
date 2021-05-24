@@ -158,7 +158,7 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
   //read in anc file
 
   MarginalTree mtr, prev_mtr; //stores marginal trees. mtr.pos is SNP position at which tree starts, mtr.tree stores the tree
-  Muts::iterator it_mut, it_mut_first; //iterator for mut file
+  Muts::iterator it_mut, it_mut_first, it_mut_tmp; //iterator for mut file
   float num_bases_tree_persists = 0.0;
 
   ////////// 1. Read one tree at a time /////////
@@ -167,8 +167,7 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
   //The mut file is read once, file is closed after constructor is called.
   AncMutIterators ancmut(filename_anc, filename_mut);
 
-
-  num_bases_tree_persists = ancmut.FirstSNP(mtr, it_mut);
+  num_bases_tree_persists = ancmut.NextTree(mtr, it_mut);
   it_mut_first = it_mut;
   int N = (mtr.tree.nodes.size() + 1)/2.0, root = 2*N - 2, L = ancmut.NumSnps();
   Data data(N,L);
@@ -194,12 +193,58 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
 
   //sites table
   char ancestral_allele[1];
+	double pos, pos_begin, pos_end;
+	std::vector<double> bps(L);
+	int bps_index = 0;
   //tsk_site_table_add_row(&tables.sites, 1, ancestral_allele, sizeof(ancestral_allele), NULL, 0);
-  for(; it_mut != ancmut.mut_end(); it_mut++){
+  for(; it_mut != ancmut.mut_end();){
     ancestral_allele[0] = (*it_mut).mutation_type[0];
-    ret = tsk_site_table_add_row(&tables.sites, (*it_mut).pos, ancestral_allele, 1, NULL, 0);
+		pos = (*it_mut).pos;
+		int count = 0;
+
+		it_mut_tmp = it_mut;
+		while((*it_mut_tmp).pos == pos){
+			it_mut_tmp++;
+			count++;
+			if(it_mut_tmp == ancmut.mut_end()) break;
+		}
+    assert(count > 0);
+
+		if(count == 1){
+      ret = tsk_site_table_add_row(&tables.sites, (*it_mut).pos, ancestral_allele, 1, NULL, 0);
+			bps[bps_index] = (*it_mut).pos;
+			bps_index++;
+			it_mut++;
+		}else{
+
+			if(it_mut_tmp != ancmut.mut_end()){
+				pos_end = ((*it_mut_tmp).pos + (*std::prev(it_mut_tmp)).pos)/2.0;
+			}else{
+				pos_end = (*std::prev(it_mut_tmp)).pos;
+			}
+			it_mut_tmp = it_mut;
+			if(it_mut_tmp != it_mut_first){
+			  pos_begin = ((*it_mut_tmp).pos + (*std::prev(it_mut_tmp)).pos)/2.0;
+			}else{
+			  pos_begin = pos;
+			}
+			int i = 0;
+			while((*it_mut_tmp).pos == pos){
+				ret = tsk_site_table_add_row(&tables.sites, ((i+1.0)/(count+1.0))*(pos_end - pos_begin) + pos_begin, ancestral_allele, 1, NULL, 0);
+				bps[bps_index] = ((i+1.0)/(count+1.0))*(pos_end - pos_begin) + pos_begin;
+				bps_index++;
+				it_mut_tmp++;
+				i++;
+				if(it_mut_tmp == ancmut.mut_end()) break;
+			}
+			it_mut = it_mut_tmp;
+
+		}
+
+		//std::cerr << (*it_mut).pos << " " << count << " " << bps_index-1 << " " << bps[bps_index-1] << std::endl;
     check_tsk_error(ret);
   }
+	assert(bps_index == L);
 
   if(ancmut.sample_ages.size() > 0){
     for(int i = 0; i < data.N; i++){
@@ -216,7 +261,7 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
   ///////////////////////////////////////////////////////////////////////////// 
 
   it_mut = it_mut_first; 
-  int pos, snp, pos_end, snp_end, tree_count = 0, node, node_const, site_count = 0, count = 0;
+  int snp, snp_end, tree_count = 0, node, node_const, site_count = 0, count = 0;
   int node_count = data.N, edge_count = 0;
 
   char derived_allele[1];
@@ -235,9 +280,12 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
       }
     }
 
-    pos = (*it_mut).pos;
-    if(mtr.pos == 0) pos = 0;
-    snp = mtr.pos;
+		snp = mtr.pos;
+    if(snp == 0){
+			pos = 0;
+		}else{
+			pos = (bps[snp] + bps[snp-1])/2.0;
+		}
 
     tree_count = (*it_mut).tree;
     node_const = tree_count * (data.N - 1);
@@ -263,14 +311,19 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
       it_mut++; 
       if(l == L) break;
     }
+
     snp_end = l;
     if(snp_end < L){
-      pos_end = (*it_mut).pos;
+      pos_end = (bps[snp_end-1] + bps[snp_end])/2.0;
     }else{
-      pos_end = (*std::prev(ancmut.mut_end(),1)).pos + 1;
+      pos_end = bps[L-1] + 1;
     }
-
-    //Node table
+		
+		assert(pos != pos_end);
+		assert(pos <= bps[snp]);
+		assert(pos_end >= bps[snp]);
+    
+		//Node table
     std::vector<Node>::iterator it_node = std::next(mtr.tree.nodes.begin(), data.N);
     int n = N;
     for(std::vector<float>::iterator it_coords = std::next(coordinates.begin(), data.N); it_coords != coordinates.end(); it_coords++){   
@@ -325,7 +378,7 @@ DumpAsTreeSequenceTopoOnly(const std::string& filename_anc, const std::string& f
   //The mut file is read once, file is closed after constructor is called.
   AncMutIterators ancmut(filename_anc, filename_mut);
 
-  num_bases_tree_persists = ancmut.FirstSNP(mtr, it_mut);
+  num_bases_tree_persists = ancmut.NextTree(mtr, it_mut);
   mtr.tree.FindAllLeaves(leaves); 
   int N = (mtr.tree.nodes.size() + 1)/2.0, root = 2*N - 2, L = ancmut.NumSnps();
 

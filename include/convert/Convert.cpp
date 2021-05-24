@@ -30,7 +30,7 @@ ConvertToTreeSequence(cxxopts::Options& options){
   }  
 
   std::cerr << "---------------------------------------------------------" << std::endl;
-  std::cerr << "Converting " << options["anc"].as<std::string>() << " and " << options["mut"].as<std::string>() << "  to tree sequence..." << std::endl;
+  std::cerr << "Converting " << options["anc"].as<std::string>() << " and " << options["mut"].as<std::string>() << " to tree sequence..." << std::endl;
 
   ////////// 1. Dump in tree sequence file format ////////
   
@@ -38,7 +38,7 @@ ConvertToTreeSequence(cxxopts::Options& options){
   DumpAsTreeSequence(options["anc"].as<std::string>(), options["mut"].as<std::string>(), options["output"].as<std::string>() + ".trees");
 
   //ignore branch lengths and combine identical branches in adjacent trees
-  DumpAsTreeSequenceTopoOnly(options["anc"].as<std::string>(), options["mut"].as<std::string>(), options["output"].as<std::string>() + ".topo.trees");
+  //DumpAsTreeSequenceTopoOnly(options["anc"].as<std::string>(), options["mut"].as<std::string>(), options["output"].as<std::string>() + ".topo.trees");
 
   /////////////////////////////////////////////
   //Resource Usage
