@@ -271,14 +271,18 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
     for(int i = 0; i < mtr.tree.nodes.size()-1; i++){
       if(!(coordinates[(*mtr.tree.nodes[i].parent).label] - coordinates[i] > 0.0)){
         int parent = (*mtr.tree.nodes[i].parent).label, child = i;
-        while(coordinates[parent] - coordinates[child] < 1e-5){
-          coordinates[parent] = coordinates[child] + 1e-5;
+				while(coordinates[parent] <= coordinates[child] + std::nextafter(coordinates[child], coordinates[child] + 1)){
+					coordinates[parent] = coordinates[child] + std::nextafter(coordinates[child], coordinates[child] + 1);
           if(parent == root) break;
           child  = parent;
           parent = (*mtr.tree.nodes[parent].parent).label;
         }
       }
     }
+
+		for(int i = 0; i < mtr.tree.nodes.size()-1; i++){	
+      assert(coordinates[i] < coordinates[(*mtr.tree.nodes[i].parent).label]);
+		}
 
 		snp = mtr.pos;
     if(snp == 0){
