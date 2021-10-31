@@ -3,7 +3,7 @@ cmake_minimum_required      (VERSION 3.1)
 
 set(CMAKE_C_FLAGS "-std=c99")
 set(CMAKE_CXX_FLAGS "-O3")        ## Optimize
-set (CMAKE_CXX_STANDARD 11)
+set (CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package( ZLIB REQUIRED )
