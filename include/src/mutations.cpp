@@ -301,7 +301,7 @@ Mutations::Dump(const std::string& filename){
 
     for(std::vector<SNPInfo>::iterator it = info.begin(); it != info.end(); it++){
       os << (*it).snp_id << ";" << (*it).pos << ";" << (*it).dist << ";" << (*it).rs_id << ";" << (*it).tree << ";";
-      std::deque<int>::iterator it_branch = (*it).branch.begin();
+      std::vector<int>::iterator it_branch = (*it).branch.begin();
       if((*it).branch.size() > 0){
         os << *it_branch;
         it_branch++;

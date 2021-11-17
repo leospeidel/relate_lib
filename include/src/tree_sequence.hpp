@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <err.h>
-#include <deque>
+#include <vector>
 #include <random>
 
 #include "gzstream.hpp"
@@ -27,7 +27,7 @@ struct PropagateStructLocal{
 };
 
 void
-PropagateMutationExact(Node& node, std::deque<int>& branches, std::deque<int>& branches_flipped, Leaves& sequences_carrying_mutations, PropagateStructLocal& report){
+PropagateMutationExact(Node& node, std::vector<int>& branches, std::vector<int>& branches_flipped, Leaves& sequences_carrying_mutations, PropagateStructLocal& report){
 
   if(node.child_left != NULL){
 
@@ -108,8 +108,8 @@ MapMutationExact(Tree& tree, Leaves& sequences_carrying_mutations, Muts::iterato
   //start with all leaves
   //propagate up and count number of nodes needed.
   //choose flipped or non-flipped depending on which is less.
-  std::deque<int> branches;
-  std::deque<int> branches_flipped; 
+  std::vector<int> branches;
+  std::vector<int> branches_flipped; 
 
   PropagateStructLocal report;
   PropagateMutationExact(*std::prev(tree.nodes.end(), 1), branches, branches_flipped, sequences_carrying_mutations, report);
@@ -118,7 +118,7 @@ MapMutationExact(Tree& tree, Leaves& sequences_carrying_mutations, Muts::iterato
 
     assert(branches.size() > 0);
     (*it_mut).branch  = branches;
-    for(std::deque<int>::iterator it = branches.begin(); it != branches.end(); it++){
+    for(std::vector<int>::iterator it = branches.begin(); it != branches.end(); it++){
       tree.nodes[*it].num_events += 1.0;
     }
     return branches.size();
@@ -128,7 +128,7 @@ MapMutationExact(Tree& tree, Leaves& sequences_carrying_mutations, Muts::iterato
     if( branches.size() <= branches_flipped.size() && branches.size() > 0 ){ 
 
       (*it_mut).branch  = branches;
-      for(std::deque<int>::iterator it = branches.begin(); it != branches.end(); it++){
+      for(std::vector<int>::iterator it = branches.begin(); it != branches.end(); it++){
         tree.nodes[*it].num_events += 1.0;
       }
       return branches.size();
@@ -137,7 +137,7 @@ MapMutationExact(Tree& tree, Leaves& sequences_carrying_mutations, Muts::iterato
 
       (*it_mut).flipped = true;
       (*it_mut).branch  = branches_flipped;
-      for(std::deque<int>::iterator it = branches_flipped.begin(); it != branches_flipped.end(); it++){
+      for(std::vector<int>::iterator it = branches_flipped.begin(); it != branches_flipped.end(); it++){
         tree.nodes[*it].num_events += 1.0;
       }
       return branches_flipped.size();
@@ -1311,7 +1311,7 @@ DumpAsTreeSequenceWithPolytomies(const std::string& filename_anc, const std::str
     //Mutation table
     int l = snp;
     while((*it_mut).tree == tree_count){
-      for(std::deque<int>::iterator it_branch = (*it_mut).branch.begin(); it_branch != (*it_mut).branch.end(); it_branch++){ 
+      for(std::vector<int>::iterator it_branch = (*it_mut).branch.begin(); it_branch != (*it_mut).branch.end(); it_branch++){ 
         node = *it_branch;
         if(node < N){
           derived_allele[0] = (*it_mut).mutation_type[2];
@@ -1506,7 +1506,7 @@ DumpAsTreeSequenceWithPolytomies(const std::string& filename_anc, const std::str
   int l = snp;
   while((*it_mut).tree == tree_count){
 
-    for(std::deque<int>::iterator it_branch = (*it_mut).branch.begin(); it_branch != (*it_mut).branch.end(); it_branch++){ 
+    for(std::vector<int>::iterator it_branch = (*it_mut).branch.begin(); it_branch != (*it_mut).branch.end(); it_branch++){ 
       node = *it_branch;
       if(node < N){
         derived_allele[0] = (*it_mut).mutation_type[2];
