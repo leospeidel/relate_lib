@@ -363,8 +363,27 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
 		//Node table
 		int n = N;
 		for(std::vector<float>::iterator it_coords = std::next(coordinates.begin(), data.N); it_coords != coordinates.end(); it_coords++){   
-			ret = tsk_node_table_add_row(&tables.nodes, 0, *it_coords, TSK_NULL, TSK_NULL, NULL, 0);   
+
+			if(count > 0){
+				prev_branch = equivalent_branches_prev[n];
+				if(prev_branch >= data.N) prev_branch += node_const - (data.N - 1);
+			}else{
+				prev_branch = -1;
+			}
+			if(num_bases_next_tree_persists >= 0.0){
+				next_branch = equivalent_branches_next[n];
+				if(next_branch >= data.N) next_branch += node_const + (data.N - 1);
+			}else{
+				next_branch = -1;
+			}
+
+			size = snprintf(NULL, 0,"%d",prev_branch) + snprintf(NULL, 0,"%d",next_branch) + 1;
+			branches = (char *) realloc(branches, size);
+			sprintf(branches, "%d %d", prev_branch, next_branch);
+			
+			ret = tsk_node_table_add_row(&tables.nodes, 0, *it_coords, TSK_NULL, TSK_NULL, branches, size);   
 			check_tsk_error(ret);
+
 			n++;
 			node_count++;
 		}
@@ -386,6 +405,7 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
 			node = (*it_node).label;
 			if(node >= data.N) node += node_const;
 
+			if(0){
 			if(count > 0){
 				prev_branch = equivalent_branches_prev[(*it_node).label];
 				if(prev_branch >= data.N) prev_branch += node_const - (data.N - 1);
@@ -402,9 +422,10 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
 			size = snprintf(NULL, 0,"%d",prev_branch) + snprintf(NULL, 0,"%d",next_branch) + 1;
 			branches = (char *) realloc(branches, size);
 			sprintf(branches, "%d %d", prev_branch, next_branch);
+			}
 
-			ret = tsk_edge_table_add_row(&tables.edges, pos, pos_end, (*(*it_node).parent).label + node_const, node, branches, size);    
-			//ret = tsk_edge_table_add_row(&tables.edges, pos, pos_end, (*(*it_node).parent).label + node_const, node, NULL, 0);    
+			//ret = tsk_edge_table_add_row(&tables.edges, pos, pos_end, (*(*it_node).parent).label + node_const, node, branches, size);    
+			ret = tsk_edge_table_add_row(&tables.edges, pos, pos_end, (*(*it_node).parent).label + node_const, node, NULL, 0);    
 			check_tsk_error(ret);
 			edge_count++;
 		}
