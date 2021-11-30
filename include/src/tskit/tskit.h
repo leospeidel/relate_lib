@@ -29,10 +29,11 @@
 #ifndef __TSKIT_H__
 #define __TSKIT_H__
 
-#include "core.h"
-#include "trees.h"
-#include "genotypes.h"
-#include "convert.h"
-#include "stats.h"
+#include <core.h>
+#include <trees.h>
+#include <genotypes.h>
+#include <convert.h>
+#include <stats.h>
+#include <haplotype_matching.h>
 
 #endif

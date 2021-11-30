@@ -30,24 +30,27 @@
 extern "C" {
 #endif
 
-#include "trees.h"
+#include <tskit/trees.h>
 
 typedef struct {
-    tsk_tree_t *outer_tree;
-    tsk_tree_t *inner_tree;
-    tsk_size_t num_sites;
-    int tree_changed;
-    tsk_treeseq_t *tree_sequence;
+    const tsk_treeseq_t *tree_sequence;
+    tsk_site_t focal_site;
+    tsk_size_t total_samples;
+    tsk_size_t focal_samples;
+    double max_distance;
+    tsk_size_t max_sites;
+    tsk_tree_t tree;
+    tsk_id_t *sample_buffer;
+    double *result;
+    tsk_size_t result_length;
 } tsk_ld_calc_t;
 
-int tsk_ld_calc_init(tsk_ld_calc_t *self, tsk_treeseq_t *tree_sequence);
+int tsk_ld_calc_init(tsk_ld_calc_t *self, const tsk_treeseq_t *tree_sequence);
 int tsk_ld_calc_free(tsk_ld_calc_t *self);
-void tsk_ld_calc_print_state(tsk_ld_calc_t *self, FILE *out);
+void tsk_ld_calc_print_state(const tsk_ld_calc_t *self, FILE *out);
 int tsk_ld_calc_get_r2(tsk_ld_calc_t *self, tsk_id_t a, tsk_id_t b, double *r2);
 int tsk_ld_calc_get_r2_array(tsk_ld_calc_t *self, tsk_id_t a, int direction,
-        tsk_size_t max_sites, double max_distance,
-        double *r2, tsk_size_t *num_r2_values);
-
+    tsk_size_t max_sites, double max_distance, double *r2, tsk_size_t *num_r2_values);
 
 #ifdef __cplusplus
 }

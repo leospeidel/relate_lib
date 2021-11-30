@@ -30,58 +30,49 @@
 extern "C" {
 #endif
 
-#include "trees.h"
+#include <tskit/trees.h>
 
-#define TSK_16_BIT_GENOTYPES    1
-
-typedef struct {
-    size_t num_samples;
-    double sequence_length;
-    size_t num_sites;
-    tsk_treeseq_t *tree_sequence;
-    tsk_id_t *sample_index_map;
-    char *output_haplotype;
-    char *haplotype_matrix;
-    tsk_tree_t tree;
-} tsk_hapgen_t;
+#define TSK_16_BIT_GENOTYPES (1 << 0)
+#define TSK_ISOLATED_NOT_MISSING (1 << 1)
 
 typedef struct {
-    tsk_site_t *site;
+    const tsk_site_t *site;
     const char **alleles;
     tsk_size_t *allele_lengths;
     tsk_size_t num_alleles;
     tsk_size_t max_alleles;
+    bool has_missing_data;
     union {
-        uint8_t *u8;
-        uint16_t *u16;
+        int8_t *i8;
+        int16_t *i16;
     } genotypes;
 } tsk_variant_t;
 
 typedef struct {
-    size_t num_samples;
-    size_t num_sites;
-    tsk_treeseq_t *tree_sequence;
-    tsk_id_t *samples;
-    tsk_id_t *sample_index_map;
-    size_t tree_site_index;
+    tsk_size_t num_samples;
+    tsk_size_t num_sites;
+    const tsk_treeseq_t *tree_sequence;
+    const tsk_id_t *samples;          /* samples being used */
+    const tsk_id_t *sample_index_map; /* reverse index map being used */
+    bool user_alleles;
+    char *user_alleles_mem;
+    tsk_size_t tree_site_index;
     int finished;
+    tsk_id_t *traversal_stack;
     tsk_tree_t tree;
     tsk_flags_t options;
     tsk_variant_t variant;
+    // private: the following data members are not intended to be used externally
+    tsk_id_t *alt_samples; /* alternative subset of samples to use */
+    tsk_id_t *alt_sample_index_map;
 } tsk_vargen_t;
 
-int tsk_hapgen_init(tsk_hapgen_t *self, tsk_treeseq_t *tree_sequence);
-/* FIXME this is inconsistent with the tables API which uses size_t for
- * IDs in functions. Not clear which is better */
-int tsk_hapgen_get_haplotype(tsk_hapgen_t *self, tsk_id_t j, char **haplotype);
-int tsk_hapgen_free(tsk_hapgen_t *self);
-void tsk_hapgen_print_state(tsk_hapgen_t *self, FILE *out);
-
-int tsk_vargen_init(tsk_vargen_t *self, tsk_treeseq_t *tree_sequence,
-        tsk_id_t *samples, size_t num_samples, tsk_flags_t options);
+int tsk_vargen_init(tsk_vargen_t *self, const tsk_treeseq_t *tree_sequence,
+    const tsk_id_t *samples, tsk_size_t num_samples, const char **alleles,
+    tsk_flags_t options);
 int tsk_vargen_next(tsk_vargen_t *self, tsk_variant_t **variant);
 int tsk_vargen_free(tsk_vargen_t *self);
-void tsk_vargen_print_state(tsk_vargen_t *self, FILE *out);
+void tsk_vargen_print_state(const tsk_vargen_t *self, FILE *out);
 
 #ifdef __cplusplus
 }

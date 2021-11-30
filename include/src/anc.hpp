@@ -227,7 +227,7 @@ class AncesTree{
     //Associate equivalent branches in seq
     void BranchAssociation(const Tree& ref_tree, const Tree& tree, std::vector<int>& equivalent_branches, std::vector<std::vector<int>>& potential_branches, int N, int N_total, float threshold_brancheq);
     void AssociateEquivalentBranches();
-
+ 
 };
 
 #endif //TREE_HPP

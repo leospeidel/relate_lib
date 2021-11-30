@@ -30,38 +30,12 @@
 extern "C" {
 #endif
 
-#include "genotypes.h"
+#include <tskit/trees.h>
 
-/* TODO do we really need to expose this or would a simpler function be
- * more appropriate? Depends on how we use it at the Python level probably. */
+#define TSK_NEWICK_LEGACY_MS_LABELS (1 << 0)
 
-typedef struct {
-    size_t num_samples;
-    size_t num_vcf_samples;
-    unsigned int ploidy;
-    char *genotypes;
-    char *header;
-    char *record;
-    char *vcf_genotypes;
-    size_t vcf_genotypes_size;
-    size_t contig_id_size;
-    size_t record_size;
-    size_t num_sites;
-    unsigned long contig_length;
-    unsigned long *positions;
-    tsk_vargen_t *vargen;
-} tsk_vcf_converter_t;
-
-int tsk_vcf_converter_init(tsk_vcf_converter_t *self,
-        tsk_treeseq_t *tree_sequence, unsigned int ploidy, const char *chrom);
-int tsk_vcf_converter_get_header(tsk_vcf_converter_t *self, char **header);
-int tsk_vcf_converter_next(tsk_vcf_converter_t *self, char **record);
-int tsk_vcf_converter_free(tsk_vcf_converter_t *self);
-void tsk_vcf_converter_print_state(tsk_vcf_converter_t *self, FILE *out);
-
-
-int tsk_convert_newick(tsk_tree_t *tree, tsk_id_t root, size_t precision,
-        tsk_flags_t options, size_t buffer_size, char *buffer);
+int tsk_convert_newick(const tsk_tree_t *tree, tsk_id_t root, unsigned int precision,
+    tsk_flags_t options, size_t buffer_size, char *buffer);
 
 #ifdef __cplusplus
 }
