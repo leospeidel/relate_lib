@@ -298,7 +298,7 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
 	while(num_bases_tree_persists >= 0.0){
 
 		it_mut = it_mut_current;
-		if(num_bases_next_tree_persists >= 0.0) anc.BranchAssociation(mtr.tree, next_mtr.tree, equivalent_branches_next, potential_branches, N, N_total, threshold_brancheq);
+		if(num_bases_next_tree_persists >= 0.0) anc.BranchAssociation(next_mtr.tree, mtr.tree, equivalent_branches_next, potential_branches, N, N_total, threshold_brancheq);
 
 		mtr.tree.GetCoordinates(coordinates);
 		for(int i = 0; i < mtr.tree.nodes.size()-1; i++){
