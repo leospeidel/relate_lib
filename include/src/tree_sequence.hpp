@@ -5,6 +5,8 @@
 #include <err.h>
 #include <vector>
 #include <random>
+#include <map>
+#include <cstring>
 
 #include "gzstream.hpp"
 #include "data.hpp"
@@ -472,7 +474,7 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
 
 //compress by combining equivalent branches (ignores branch lengths)
 void
-DumpAsTreeSequenceTopoOnly(const std::string& filename_anc, const std::string& filename_mut, const std::string& filename_output){
+DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string& filename_mut, const std::string& filename_output){
 
 	MarginalTree mtr, prev_mtr; //stores marginal trees. mtr.pos is SNP position at which tree starts, mtr.tree stores the tree
 	std::vector<Leaves> leaves, prev_leaves;
@@ -517,10 +519,14 @@ DumpAsTreeSequenceTopoOnly(const std::string& filename_anc, const std::string& f
 	//Iterate through ancmut
 
 	it_mut = ancmut.mut_begin();
-	//std::vector<float> coordinates(2*N-1,0.0);
+	std::vector<float> coordinates(2*N-1,0.0);
 	int pos, snp, pos_end, snp_end, tree_count = 0, node, site_count = 0;
 
-	int node_count = 0, edge_count = 0;
+  //numerator/denominator of average node age (weighted by tree span)
+  //TODO: just use std::vector<double>
+  std::map<int, double> node_age, node_span;
+
+	int node_count = 0, edge_count = 0, root_count = 1;
 	bool is_different = false;
 	//for each tree, keep a vector convert_nodes that maps nodes to ts nodes
 	std::vector<int> convert_nodes(mtr.tree.nodes.size(), 0), convert_nodes_prev(mtr.tree.nodes.size(), 0);
@@ -532,25 +538,34 @@ DumpAsTreeSequenceTopoOnly(const std::string& filename_anc, const std::string& f
 		*it_convert = node_count;
 		*it_update_backwards = node_count;
 		*it_update_forwards  = node_count;
-		//new node, so add to node table
-		//need to think how I can replace num_leaves by actual age
-		ret = tsk_node_table_add_row(&tables.nodes, TSK_NODE_IS_SAMPLE, leaves[node_count].num_leaves, TSK_NULL, TSK_NULL, NULL, 0);   
+
+	  if(ancmut.sample_ages.size() > 0){
+      node_age[node_count] = (double)(ancmut.sample_ages[node_count]);
+		} else {
+      node_age[node_count] = 0.0;
+    }
+    node_span[node_count] = 1.0;
+
+		ret = tsk_node_table_add_row(&tables.nodes, TSK_NODE_IS_SAMPLE, leaves[node_count].num_leaves - 1, TSK_NULL, TSK_NULL, (char*)(&node_age[node_count]), sizeof(double));   
+    check_tsk_error(ret); 
 		node_count++;
 		it_update_forwards++;
 		it_update_backwards++;
 	}
 	for(;it_convert != convert_nodes.end(); it_convert++){
 		*it_convert          = node_count;
-		//new node, so add to node table
-		//need to think how I can replace num_leaves by actual age
-		ret = tsk_node_table_add_row(&tables.nodes, 0, leaves[node_count].num_leaves, TSK_NULL, TSK_NULL, NULL, 0);   
+    node_age[node_count] = 0.0;
+    node_span[node_count] = 0.0;
+		ret = tsk_node_table_add_row(&tables.nodes, 0, leaves[node_count].num_leaves - 1, TSK_NULL, TSK_NULL, (char*)(&node_age[node_count]), sizeof(double));   
+    check_tsk_error(ret); 
 		node_count++;
 	}
 
+  double total_span = 0.0;
 	char derived_allele[1];
 	while(num_bases_tree_persists >= 0.0){
 
-		//mtr.tree.GetCoordinates(coordinates);
+		mtr.tree.GetCoordinates(coordinates);
 		pos = (*it_mut).pos;
 		if(mtr.pos == 0) pos = 0;
 		for(std::vector<Node>::iterator it_node = mtr.tree.nodes.begin(); it_node != mtr.tree.nodes.end(); it_node ++){
@@ -562,7 +577,7 @@ DumpAsTreeSequenceTopoOnly(const std::string& filename_anc, const std::string& f
 
 		if(tree_count > 0){
 			//nodes:
-			//for each node, check if its descendant set is identical to before
+			//for each non-root node, check if its descendant set is identical to before
 			//if no, update convert_nodes[i] = node_count;
 			std::fill(std::next(update_backwards.begin(),N), update_backwards.end(), 0);
 			std::fill(std::next(update_forwards.begin(),N), update_forwards.end(), 0);
@@ -570,8 +585,8 @@ DumpAsTreeSequenceTopoOnly(const std::string& filename_anc, const std::string& f
 			for(int n = 0; n < N; n++){
 				mtr.tree.nodes[n].SNP_begin = prev_mtr.tree.nodes[n].SNP_begin;
 			}
-			//identify all nodes that are new
-			for(int n = N; n < 2*N-1; n++){
+			//identify all nodes that are new (e.g. descendent set differs between prev and current tree)
+			for(int n = N; n < 2*N-2; n++){
 				if(1){
 					is_different = true;
 					if(leaves[n].num_leaves == prev_leaves[n].num_leaves){
@@ -622,6 +637,21 @@ DumpAsTreeSequenceTopoOnly(const std::string& filename_anc, const std::string& f
 					}
 				}
 			}
+      // The root node will always have the same descendant set. However, if
+      // the root is given the same ID across the entire ARG, it'll create a
+      // strange constraint on branch lengths, because the TMRCA of all samples
+      // will be forced to be constant across the sequence. To avoid this, give
+      // a unique ID to the root whenever its children change.
+      int root_left = (*mtr.tree.nodes[2*N-2].child_left).label,
+          root_right = (*mtr.tree.nodes[2*N-2].child_right).label;
+      is_different = update_backwards[root_left] == 0 || update_backwards[root_right] == 0;
+      if (!is_different){
+				update_backwards[2*N-2]   = 2*N-2;
+				update_forwards[2*N-2]    = 2*N-2;
+				convert_nodes_prev[2*N-2] = convert_nodes[2*N-2];
+				mtr.tree.nodes[2*N-2].SNP_begin = prev_mtr.tree.nodes[2*N-2].SNP_begin;
+      }
+      root_count += int(is_different);
 
 			for(int n = 0; n < 2*N-2; n++){
 				int parent_prev = (*prev_mtr.tree.nodes[n].parent).label;
@@ -631,14 +661,14 @@ DumpAsTreeSequenceTopoOnly(const std::string& filename_anc, const std::string& f
 				if(n < N){
 					if( update_forwards[parent_prev] != parent_now ){
 						//these edges don't exist anymore 
-						ret = tsk_edge_table_add_row(&tables.edges, prev_mtr.tree.nodes[n].SNP_begin, pos_end, convert_nodes[parent_prev], convert_nodes[n], NULL, 0);
+						ret = tsk_edge_table_add_row(&tables.edges, prev_mtr.tree.nodes[n].SNP_begin, pos_end, convert_nodes[parent_prev], convert_nodes[n], NULL, 0); // (char*)(&length), sizeof(length));
 						check_tsk_error(ret); 
 						edge_count++;
 						mtr.tree.nodes[n].SNP_begin = pos_end; 
 					}
 				}else if( n_now == 0 || update_forwards[parent_prev] != parent_now ){
 					//these edges don't exist anymore
-					ret = tsk_edge_table_add_row(&tables.edges, prev_mtr.tree.nodes[n].SNP_begin, pos_end, convert_nodes[parent_prev], convert_nodes[n], NULL, 0);
+					ret = tsk_edge_table_add_row(&tables.edges, prev_mtr.tree.nodes[n].SNP_begin, pos_end, convert_nodes[parent_prev], convert_nodes[n], NULL, 0); // (char*)(&length), sizeof(length));
 					if(n_now > 0) mtr.tree.nodes[n_now].SNP_begin = pos_end; 
 					check_tsk_error(ret); 
 					edge_count++; 
@@ -649,8 +679,9 @@ DumpAsTreeSequenceTopoOnly(const std::string& filename_anc, const std::string& f
 				if(update_backwards[n] == 0){
 					convert_nodes[n] = node_count;
 					//new node, so add to node table
-					//need to think how I can replace num_leaves by actual age
-					ret = tsk_node_table_add_row(&tables.nodes, 0, leaves[n].num_leaves, TSK_NULL, TSK_NULL, NULL, 0);  
+          node_age[node_count] = 0.0;
+          node_span[node_count] = 0.0;
+					ret = tsk_node_table_add_row(&tables.nodes, 0, leaves[n].num_leaves - 1, TSK_NULL, TSK_NULL, (char*)(&node_age[node_count]), sizeof(double));  
 					mtr.tree.nodes[n].SNP_begin = pos; 
 					node_count++;
 				}else{
@@ -667,11 +698,11 @@ DumpAsTreeSequenceTopoOnly(const std::string& filename_anc, const std::string& f
 				node = *(*it_mut).branch.begin();
 				if(node < N){
 					derived_allele[0] = (*it_mut).mutation_type[2];
-					ret = tsk_mutation_table_add_row(&tables.mutations, l, node, TSK_NULL, 0, derived_allele, 1, NULL, 0);
+					ret = tsk_mutation_table_add_row(&tables.mutations, l, node, TSK_NULL, TSK_UNKNOWN_TIME, derived_allele, 1, NULL, 0);
 					check_tsk_error(ret);
 				}else{
 					derived_allele[0] = (*it_mut).mutation_type[2];
-					ret = tsk_mutation_table_add_row(&tables.mutations, l, convert_nodes[node], TSK_NULL, 0, derived_allele, 1, NULL, 0);
+					ret = tsk_mutation_table_add_row(&tables.mutations, l, convert_nodes[node], TSK_NULL, TSK_UNKNOWN_TIME, derived_allele, 1, NULL, 0);
 					check_tsk_error(ret);
 				}
 				site_count++;
@@ -688,6 +719,14 @@ DumpAsTreeSequenceTopoOnly(const std::string& filename_anc, const std::string& f
 			pos_end = (*std::prev(ancmut.mut_end(),1)).pos + 1;
 		}
 
+    // update average node age
+    double span = pos_end - pos;
+    for(int n = N; n < 2*N-1; n++){
+      node_age[convert_nodes[n]] += span * (double)(coordinates[n]);
+      node_span[convert_nodes[n]] += span;
+    }
+    total_span += span;
+
 		//load next tree
 		prev_mtr                = mtr;
 		prev_leaves             = leaves;
@@ -698,17 +737,25 @@ DumpAsTreeSequenceTopoOnly(const std::string& filename_anc, const std::string& f
 	//for last tree need to dump all edges
 	for(int n = 0; n < 2*N-2; n++){        
 		int parent_prev = (*prev_mtr.tree.nodes[n].parent).label;
-		ret = tsk_edge_table_add_row(&tables.edges, prev_mtr.tree.nodes[n].SNP_begin, pos_end, convert_nodes[parent_prev], convert_nodes[n], NULL, 0);
+		ret = tsk_edge_table_add_row(&tables.edges, prev_mtr.tree.nodes[n].SNP_begin, pos_end, convert_nodes[parent_prev], convert_nodes[n], NULL, 0); //(char*)(&length), sizeof(length));
 		check_tsk_error(ret); 
 		edge_count++;
 	}
 
-	std::cerr << "Node count; edge count; tree count" << std::endl;
-	std::cerr << node_count << " " << edge_count << " " << tree_count << std::endl;
+	std::cerr << "Node count; edge count; tree count; root count" << std::endl;
+	std::cerr << node_count << " " << edge_count << " " << tree_count << " " << root_count << std::endl;
 
-	tsk_table_collection_sort(&tables, NULL, 0);
+  // copy node ages into metadata
+  assert (node_age.size() == tables.nodes.num_rows);
+	double average_age[node_age.size()];
+  for (int i=0; i<node_age.size(); i++){
+    average_age[i] = node_age[i] / node_span[i];
+  }
+  std::memcpy(tables.nodes.metadata, average_age, sizeof(double)*node_age.size());
+
+	ret = tsk_table_collection_sort(&tables, NULL, 0);
 	check_tsk_error(ret);
-	tsk_table_collection_build_index(&tables, 0);
+	ret = tsk_table_collection_build_index(&tables, 0);
 	check_tsk_error(ret);
 	//////////////////////////
 
@@ -716,7 +763,6 @@ DumpAsTreeSequenceTopoOnly(const std::string& filename_anc, const std::string& f
 	ret = tsk_table_collection_dump(&tables, filename_output.c_str(), 0);        
 	check_tsk_error(ret);
 	tsk_table_collection_free(&tables); 
-
 }
 
 void

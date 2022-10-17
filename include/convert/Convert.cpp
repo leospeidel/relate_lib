@@ -18,6 +18,7 @@ ConvertToTreeSequence(cxxopts::Options& options){
   //Program options
 
   bool help = false;
+  bool compress = false;
   if(!options.count("anc") || !options.count("mut") || !options.count("output")){
     std::cout << "Not enough arguments supplied." << std::endl;
     std::cout << "Needed: anc, mut, output." << std::endl;
@@ -28,17 +29,26 @@ ConvertToTreeSequence(cxxopts::Options& options){
     std::cout << "Example code for converting to tree sequence file format." << std::endl;
     exit(0);
   }  
+  if(options.count("compress")){
+    compress = true;
+  }
 
   std::cerr << "---------------------------------------------------------" << std::endl;
   std::cerr << "Converting " << options["anc"].as<std::string>() << " and " << options["mut"].as<std::string>() << " to tree sequence..." << std::endl;
+  if (compress){
+    std::cerr << "Combining equivalent branches and nodes; node age is stored as double precision in node metadata ..." << std::endl;
+  }
 
   ////////// 1. Dump in tree sequence file format ////////
   
-  //new set of nodes for each tree (this does not compress trees)
-  DumpAsTreeSequence(options["anc"].as<std::string>(), options["mut"].as<std::string>(), options["output"].as<std::string>() + ".trees");
-
-  //ignore branch lengths and combine identical branches in adjacent trees
-  //DumpAsTreeSequenceTopoOnly(options["anc"].as<std::string>(), options["mut"].as<std::string>(), options["output"].as<std::string>() + ".topo.trees");
+  std::string outfile = options["output"].as<std::string>() + ".trees";
+  if (compress){
+    //combine identical branches in adjacent trees, sticking average node time (weighted by span) into metadata
+    DumpAsCompressedTreeSequence(options["anc"].as<std::string>(), options["mut"].as<std::string>(), outfile);
+  } else {
+    //new set of nodes for each tree (this does not compress trees)
+    DumpAsTreeSequence(options["anc"].as<std::string>(), options["mut"].as<std::string>(), outfile);
+  }
 
   /////////////////////////////////////////////
   //Resource Usage
@@ -125,6 +135,7 @@ int main(int argc, char* argv[]){
   cxxopts::Options options("Conversion");
   options.add_options()
     ("help", "Print help.")
+    ("compress", "Compress tree sequence by combining equivalent nodes in adjacent trees.")
     ("mode", "Choose which part of the algorithm to run.", cxxopts::value<std::string>())
     ("anc", "Filename of file containing trees.", cxxopts::value<std::string>())
     ("mut", "Filename of file containing mut.", cxxopts::value<std::string>())
