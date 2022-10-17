@@ -7,6 +7,8 @@ Leo Speidel <br/> Department of Statistics, University of Oxford, Oxford, UK
 
 C++11 and cmake version 3.1.
 
+The requirements for the Python scripts that add branch lengths to compressed tree sequence output are in ``python/requirements.txt``.
+
 ## Installation
 
 Clone/fork from this github repository to a local directory.
