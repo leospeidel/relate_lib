@@ -17,7 +17,8 @@ parser = argparse.ArgumentParser(
         "Given a tree sequence with a set of node times that result in negative "
         "branch lengths, find a set of valid node times such that the relative "
         "squared error is minimal. Original (invalid) node times should be stored "
-        "as double precision in the node metadata of the input tree sequence."
+        "as double precision in the node metadata of the input tree sequence.\n\n"
+        "NB: Experimental -- compare branch statistics with uncompressed tree sequence"
 )
 parser.add_argument("--tree-sequence", type=str, help="Tree sequence with unconstrained node times in node metadata (e.g. node times such that some branch lengths are negative)")
 parser.add_argument("--output", type=str, help="Output tree sequence with constrained node times (or table collection with approximate node times if constraint is not met)") 
@@ -128,8 +129,8 @@ if __name__ == "__main__":
     if args.clear_mutations:
         if args.verbose:
             print(f"Removing mutations and sites ... ")
-       tables.mutations.clear()
-       tables.sites.clear()
+        tables.mutations.clear()
+        tables.sites.clear()
     else:
         tables.mutations.time.fill(tskit.UNKNOWN_TIME)
     tables.nodes.time = node_times_constrained

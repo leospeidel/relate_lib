@@ -20,7 +20,7 @@ args = parser.parse_args()
 
 def tree_tmrca(ts, grid):
     # TODO: should take averages over windows, not point evaluations
-    out = np.empty(grid.shape - 1)
+    out = np.empty(len(grid)-1)
     tree = ts.first()
     for i, coord in enumerate(grid[:-1]):
         tree.seek(coord)
@@ -80,5 +80,5 @@ if __name__ == "__main__":
         ax[i,j].axline((np.mean(a),np.mean(b)), slope=1, color='black', ls='dashed')
     fig.supxlabel("Values in uncompressed tree sequence")
     fig.supylabel("Values in compressed+constrained tree sequence")
-    plt.savefig(args.output_prefix + ".comparison.png")
+    plt.savefig(args.output_prefix + ".png")
 

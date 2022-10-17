@@ -522,9 +522,9 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
 	std::vector<float> coordinates(2*N-1,0.0);
 	int pos, snp, pos_end, snp_end, tree_count = 0, node, site_count = 0;
 
-  //numerator/denominator of average node age (weighted by tree span)
-  //TODO: just use std::vector<double>
-  std::map<int, double> node_age, node_span;
+	//numerator/denominator of average node age (weighted by tree span)
+	//TODO: just use std::vector<double>
+	std::map<int, double> node_age, node_span;
 
 	int node_count = 0, edge_count = 0, root_count = 1;
 	bool is_different = false;
@@ -540,28 +540,28 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
 		*it_update_forwards  = node_count;
 
 	  if(ancmut.sample_ages.size() > 0){
-      node_age[node_count] = (double)(ancmut.sample_ages[node_count]);
+			node_age[node_count] = (double)(ancmut.sample_ages[node_count]);
 		} else {
-      node_age[node_count] = 0.0;
-    }
-    node_span[node_count] = 1.0;
+			node_age[node_count] = 0.0;
+		}
+		node_span[node_count] = 1.0;
 
 		ret = tsk_node_table_add_row(&tables.nodes, TSK_NODE_IS_SAMPLE, leaves[node_count].num_leaves - 1, TSK_NULL, TSK_NULL, (char*)(&node_age[node_count]), sizeof(double));   
-    check_tsk_error(ret); 
+		check_tsk_error(ret); 
 		node_count++;
 		it_update_forwards++;
 		it_update_backwards++;
 	}
 	for(;it_convert != convert_nodes.end(); it_convert++){
 		*it_convert          = node_count;
-    node_age[node_count] = 0.0;
-    node_span[node_count] = 0.0;
+		node_age[node_count] = 0.0;
+		node_span[node_count] = 0.0;
 		ret = tsk_node_table_add_row(&tables.nodes, 0, leaves[node_count].num_leaves - 1, TSK_NULL, TSK_NULL, (char*)(&node_age[node_count]), sizeof(double));   
-    check_tsk_error(ret); 
+		check_tsk_error(ret); 
 		node_count++;
 	}
 
-  double total_span = 0.0;
+	double total_span = 0.0;
 	char derived_allele[1];
 	while(num_bases_tree_persists >= 0.0){
 
@@ -637,21 +637,21 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
 					}
 				}
 			}
-      // The root node will always have the same descendant set. However, if
-      // the root is given the same ID across the entire ARG, it'll create a
-      // strange constraint on branch lengths, because the TMRCA of all samples
-      // will be forced to be constant across the sequence. To avoid this, give
-      // a unique ID to the root whenever its children change.
-      int root_left = (*mtr.tree.nodes[2*N-2].child_left).label,
-          root_right = (*mtr.tree.nodes[2*N-2].child_right).label;
-      is_different = update_backwards[root_left] == 0 || update_backwards[root_right] == 0;
-      if (!is_different){
+			// The root node will always have the same descendant set. However, if
+			// the root is given the same ID across the entire ARG, it'll create a
+			// strange constraint on branch lengths, because the TMRCA of all samples
+			// will be forced to be constant across the sequence. To avoid this, give
+			// a unique ID to the root whenever its children change.
+			int root_left = (*mtr.tree.nodes[2*N-2].child_left).label,
+					root_right = (*mtr.tree.nodes[2*N-2].child_right).label;
+			is_different = update_backwards[root_left] == 0 || update_backwards[root_right] == 0;
+			if (!is_different){
 				update_backwards[2*N-2]   = 2*N-2;
 				update_forwards[2*N-2]    = 2*N-2;
 				convert_nodes_prev[2*N-2] = convert_nodes[2*N-2];
 				mtr.tree.nodes[2*N-2].SNP_begin = prev_mtr.tree.nodes[2*N-2].SNP_begin;
-      }
-      root_count += int(is_different);
+			}
+			root_count += int(is_different);
 
 			for(int n = 0; n < 2*N-2; n++){
 				int parent_prev = (*prev_mtr.tree.nodes[n].parent).label;
@@ -679,8 +679,8 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
 				if(update_backwards[n] == 0){
 					convert_nodes[n] = node_count;
 					//new node, so add to node table
-          node_age[node_count] = 0.0;
-          node_span[node_count] = 0.0;
+					node_age[node_count] = 0.0;
+					node_span[node_count] = 0.0;
 					ret = tsk_node_table_add_row(&tables.nodes, 0, leaves[n].num_leaves - 1, TSK_NULL, TSK_NULL, (char*)(&node_age[node_count]), sizeof(double));  
 					mtr.tree.nodes[n].SNP_begin = pos; 
 					node_count++;
@@ -719,13 +719,13 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
 			pos_end = (*std::prev(ancmut.mut_end(),1)).pos + 1;
 		}
 
-    // update average node age
-    double span = pos_end - pos;
-    for(int n = N; n < 2*N-1; n++){
-      node_age[convert_nodes[n]] += span * (double)(coordinates[n]);
-      node_span[convert_nodes[n]] += span;
-    }
-    total_span += span;
+		// update average node age
+		double span = pos_end - pos;
+		for(int n = N; n < 2*N-1; n++){
+			node_age[convert_nodes[n]] += span * (double)(coordinates[n]);
+			node_span[convert_nodes[n]] += span;
+		}
+		total_span += span;
 
 		//load next tree
 		prev_mtr                = mtr;
@@ -745,13 +745,13 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
 	std::cerr << "Node count; edge count; tree count; root count" << std::endl;
 	std::cerr << node_count << " " << edge_count << " " << tree_count << " " << root_count << std::endl;
 
-  // copy node ages into metadata
-  assert (node_age.size() == tables.nodes.num_rows);
+	// copy node ages into metadata
+	assert (node_age.size() == tables.nodes.num_rows);
 	double average_age[node_age.size()];
-  for (int i=0; i<node_age.size(); i++){
-    average_age[i] = node_age[i] / node_span[i];
-  }
-  std::memcpy(tables.nodes.metadata, average_age, sizeof(double)*node_age.size());
+	for (int i=0; i<node_age.size(); i++){
+		average_age[i] = node_age[i] / node_span[i];
+	}
+	std::memcpy(tables.nodes.metadata, average_age, sizeof(double)*node_age.size());
 
 	ret = tsk_table_collection_sort(&tables, NULL, 0);
 	check_tsk_error(ret);
