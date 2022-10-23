@@ -488,9 +488,9 @@ AddConstrainedNodeAge(tsk_table_collection_t& tables, double* node_age, double* 
 	 */
 	int max_iter = 10000; //TODO: this should be settable
 	bool verbose = true; //TODO: this should be settable
-	double eps = 0.1; //TODO: need a reasonable automatic way to set this--minimum node age, maybe?
+	double eps = 0.001; //TODO: need a reasonable automatic way to set this--a fraction of minimum node age, maybe?
 	double tol = eps; 
-	int ret = 1;
+	int ret = 1; //TODO: should print min squared error on return
 
 	// There's probably a better stopping rule; but for now we terminate when the
 	// minimum branch length is within `tol` from `eps` (the "targeted minimum

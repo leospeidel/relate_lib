@@ -82,7 +82,8 @@ def constrain_ages_quadprog(ts, node_age, min_len, starting_state=None, **kwargs
     eps_edge = np.full(ts.num_edges, min_len)
     eps_node = np.full(ts.num_nodes - ts.num_samples, min_len)
     A = node_age_to_branch_length(ts)
-    P = scipy.sparse.spdiags(1/np.sqrt(xhat), 0, len(xhat), len(xhat))
+    P = scipy.sparse.spdiags(np.ones(len(xhat)), 0, len(xhat), len(xhat)) #no weights for now (usual least squares)
+    #P = scipy.sparse.spdiags(1/np.sqrt(xhat), 0, len(xhat), len(xhat))
     obj = cp.Minimize(cp.sum_squares(P @ x - P @ xhat))
     #constr = [A @ x >= eps_edge, x >= eps_node]
     constr = [A @ x >= eps_edge]
