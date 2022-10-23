@@ -472,9 +472,116 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
 
 }
 
-//compress by combining equivalent branches (ignores branch lengths)
+int
+AddConstrainedNodeAge(tsk_table_collection_t& tables, double* node_age, double* node_span, const int N){
+	/* 
+	 *  Use Dykstra's algorithm to solve the quadratic programming problem,
+	 *
+	 *    minimize \sum_i w_i (x_i - \hat{x}_i)^2
+	 *    s.t. A x >= \epsilon
+	 *
+	 *  where `\hat{x}` are unconstrained node ages, `A` is a sparse matrix mapping node
+	 *  ages onto branch lengths, `w` are weights, and `\epsilon` is the minimum allowed branch
+	 *  length.
+	 *
+	 *  NB: `tables` and `node_age` are modified _in place_.
+	 */
+	int max_iter = 10000; //TODO: this should be settable
+	bool verbose = true; //TODO: this should be settable
+	double eps = 0.1; //TODO: need a reasonable automatic way to set this--minimum node age, maybe?
+	double tol = eps; 
+	int ret = 1;
+
+	// There's probably a better stopping rule; but for now we terminate when the
+	// minimum branch length is within `tol` from `eps` (the "targeted minimum
+	// branch length").
+	assert (eps >= 0.0);
+	assert (tol >= 0.0);
+	assert (tol <= eps);
+	// So, if tol == eps (the default) then the algorithm terminates once all
+	// branch lengths are non-negative.
+
+	// For now, set weights to unity: in the future, it might be useful
+	// weight by inverse of age, by relative span, or some combination thereof.
+	std::vector<double> weights (tables.nodes.num_rows, 1.0);
+
+	std::vector<double> proj_p (tables.edges.num_rows, 0.0); 
+	std::vector<double> proj_c (tables.edges.num_rows, 0.0); 
+	tsk_size_t p, c;
+	int iter = 0;
+	double adj_len, dual_gap, constraint;
+
+	if (verbose) std::cout << "Finding constrained node ages ..." << std::endl;
+	do {
+		iter++;
+		for (tsk_size_t e=0; e<tables.edges.num_rows; e++){
+			p = tables.edges.parent[e];
+			c = tables.edges.child[e];
+
+			node_age[p] -= proj_p[e];
+			node_age[c] -= proj_c[e];
+			proj_p[e] = 0.0;
+			proj_c[e] = 0.0;
+			adj_len = node_age[c] - node_age[p] + eps;
+			if (adj_len > 0.0){ //constraint violated
+				if (c >= N){ //free to reproject both child and parent
+					proj_p[e] =  adj_len * 1.0/weights[p] * 1.0/(1.0/weights[c] + 1.0/weights[p]);
+					proj_c[e] = -adj_len * 1.0/weights[c] * 1.0/(1.0/weights[c] + 1.0/weights[p]);
+				} else { //"condition on" sample ages by setting weights[c] to 0.0
+					proj_p[e] = adj_len;
+				}
+			}
+			node_age[p] += proj_p[e];
+			node_age[c] += proj_c[e];
+		}
+
+		// monitor residual for the dual problem
+		dual_gap = std::numeric_limits<double>::infinity();
+		for (tsk_size_t e=0; e<tables.edges.num_rows; e++){
+			p = tables.edges.parent[e];
+			c = tables.edges.child[e];
+			constraint = node_age[p] - node_age[c] - eps;
+			if (constraint < dual_gap){
+				dual_gap = constraint;
+			}
+		}
+
+		if (verbose && (iter % 1 == 0)) {
+			std::cout << "\t[" << iter << "] min(branch length) = " << dual_gap + eps << std::endl;
+		}
+
+		// success: dual gap is within convergence tol
+		if (dual_gap > -tol){
+			if (verbose){
+				std::cout << "Solution reached in " << iter << " iterations with " <<
+					"min(branch length) = " << dual_gap + eps << " > " << eps - tol <<
+					" ..." << std::endl;
+			}
+			ret = 0;
+			break;
+		}
+		
+		// failure: maximum iterations reached
+		if (iter > max_iter){
+			std::cerr << "Maximum number of iterations reached. If table sort fails, " << 
+				"try again with --max-iterations greater than " << max_iter << std::endl;
+			ret = 1;
+			break;
+		}
+	} while (true);
+
+	// copy constrained node age into table collection
+	std::memcpy(tables.nodes.time, node_age, sizeof(double)*tables.nodes.num_rows);
+
+	return ret;
+}
+
 void
 DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string& filename_mut, const std::string& filename_output){
+	/* 
+	 * Compress by combining equivalent branches across adjacent trees, and
+	 * calibrating node ages such that branch lengths are positive.
+	 */
 
 	MarginalTree mtr, prev_mtr; //stores marginal trees. mtr.pos is SNP position at which tree starts, mtr.tree stores the tree
 	std::vector<Leaves> leaves, prev_leaves;
@@ -489,7 +596,7 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
 
 	num_bases_tree_persists = ancmut.NextTree(mtr, it_mut);
 	mtr.tree.FindAllLeaves(leaves); 
-	int N = (mtr.tree.nodes.size() + 1)/2.0, root = 2*N - 2, L = ancmut.NumSnps();
+	int N = (mtr.tree.nodes.size() + 1)/2.0, root = 2*N - 2, L = ancmut.NumSnps(), T = ancmut.NumTrees();
 
 	//........................................................................
 	//Populate ts tables
@@ -499,16 +606,17 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
 	ret = tsk_table_collection_init(&tables, 0);
 	check_tsk_error(ret);
 
+	// Add individual table
 	tables.sequence_length = (*std::prev(ancmut.mut_end(),1)).pos + 1;
 	for(int i = 0; i < N; i++){
 		tsk_individual_table_add_row(&tables.individuals, 0, NULL, 0, NULL, 0 , NULL, 0);
 	}
 
-	//population table
+	// Add population table
+	//TODO
 
-	//sites table
+	// Add sites table
 	char ancestral_allele[1];
-	//tsk_site_table_add_row(&tables.sites, 1, ancestral_allele, sizeof(ancestral_allele), NULL, 0);
 	for(; it_mut != ancmut.mut_end(); it_mut++){
 		ancestral_allele[0] = (*it_mut).mutation_type[0];
 		ret = tsk_site_table_add_row(&tables.sites, (*it_mut).pos, ancestral_allele, 1, NULL, 0);
@@ -522,13 +630,14 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
 	std::vector<float> coordinates(2*N-1,0.0);
 	int pos, snp, pos_end, snp_end, tree_count = 0, node, site_count = 0;
 
-	//numerator/denominator of average node age (weighted by tree span)
-	//TODO: just use std::vector<double>
-	std::map<int, double> node_age, node_span;
+	// Numerator/denominator of average node age (weighted by tree span)
+	std::vector<double> node_age, node_span;
+	node_age.reserve(N * T);
+	node_span.reserve(N * T);
 
+	// For each tree, keep a vector convert_nodes that maps marginal nodes to collapsed nodes
 	int node_count = 0, edge_count = 0, root_count = 1;
 	bool is_different = false;
-	//for each tree, keep a vector convert_nodes that maps nodes to ts nodes
 	std::vector<int> convert_nodes(mtr.tree.nodes.size(), 0), convert_nodes_prev(mtr.tree.nodes.size(), 0);
 	std::vector<int> update_backwards(2*N-1,0), update_forwards(2*N-1,0);
 
@@ -540,11 +649,11 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
 		*it_update_forwards  = node_count;
 
 	  if(ancmut.sample_ages.size() > 0){
-			node_age[node_count] = (double)(ancmut.sample_ages[node_count]);
+			node_age.push_back((double)(ancmut.sample_ages[node_count]));
 		} else {
-			node_age[node_count] = 0.0;
+			node_age.push_back(0.0);
 		}
-		node_span[node_count] = 1.0;
+		node_span.push_back(1.0);
 
 		ret = tsk_node_table_add_row(&tables.nodes, TSK_NODE_IS_SAMPLE, leaves[node_count].num_leaves - 1, TSK_NULL, TSK_NULL, (char*)(&node_age[node_count]), sizeof(double));   
 		check_tsk_error(ret); 
@@ -554,8 +663,8 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
 	}
 	for(;it_convert != convert_nodes.end(); it_convert++){
 		*it_convert          = node_count;
-		node_age[node_count] = 0.0;
-		node_span[node_count] = 0.0;
+		node_age.push_back(0.0);
+		node_span.push_back(0.0);
 		ret = tsk_node_table_add_row(&tables.nodes, 0, leaves[node_count].num_leaves - 1, TSK_NULL, TSK_NULL, (char*)(&node_age[node_count]), sizeof(double));   
 		check_tsk_error(ret); 
 		node_count++;
@@ -576,9 +685,8 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
 		tree_count = (*it_mut).tree;
 
 		if(tree_count > 0){
-			//nodes:
 			//for each non-root node, check if its descendant set is identical to before
-			//if no, update convert_nodes[i] = node_count;
+			//if not, update so that convert_nodes[i] = node_count
 			std::fill(std::next(update_backwards.begin(),N), update_backwards.end(), 0);
 			std::fill(std::next(update_forwards.begin(),N), update_forwards.end(), 0);
 			std::fill(std::next(convert_nodes_prev.begin(),N), convert_nodes_prev.end(), 0);
@@ -601,11 +709,9 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
 						}
 					}
 					if(is_different){ //still has a chance to be new
-
 						if(1){ //for exact matching - should eventually be replaced by hash table
 							for(int j = N; j < prev_leaves.size(); j++){
 								if(leaves[n].num_leaves == prev_leaves[j].num_leaves){
-
 									is_different = false;
 									std::vector<int>::iterator it_prev_leaves = prev_leaves[j].member.begin();
 									for(std::vector<int>::iterator it_leaves = leaves[n].member.begin(); it_leaves != leaves[n].member.end();){
@@ -616,7 +722,6 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
 										it_leaves++;
 										it_prev_leaves++;
 									}
-
 									if(!is_different){ //found an identical node
 										update_backwards[n]   = j; 
 										update_forwards[j]    = n;
@@ -624,11 +729,9 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
 										mtr.tree.nodes[n].SNP_begin = prev_mtr.tree.nodes[j].SNP_begin;
 										break;
 									}
-
 								}
 							}
 						}
-
 					}else{
 						update_backwards[n]   = n;
 						update_forwards[n]    = n;
@@ -637,6 +740,7 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
 					}
 				}
 			}
+
 			// The root node will always have the same descendant set. However, if
 			// the root is given the same ID across the entire ARG, it'll create a
 			// strange constraint on branch lengths, because the TMRCA of all samples
@@ -653,6 +757,7 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
 			}
 			root_count += int(is_different);
 
+			// Update edge table
 			for(int n = 0; n < 2*N-2; n++){
 				int parent_prev = (*prev_mtr.tree.nodes[n].parent).label;
 				int n_now       = update_forwards[n];
@@ -661,26 +766,26 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
 				if(n < N){
 					if( update_forwards[parent_prev] != parent_now ){
 						//these edges don't exist anymore 
-						ret = tsk_edge_table_add_row(&tables.edges, prev_mtr.tree.nodes[n].SNP_begin, pos_end, convert_nodes[parent_prev], convert_nodes[n], NULL, 0); // (char*)(&length), sizeof(length));
+						ret = tsk_edge_table_add_row(&tables.edges, prev_mtr.tree.nodes[n].SNP_begin, pos_end, convert_nodes[parent_prev], convert_nodes[n], NULL, 0);
 						check_tsk_error(ret); 
 						edge_count++;
 						mtr.tree.nodes[n].SNP_begin = pos_end; 
 					}
 				}else if( n_now == 0 || update_forwards[parent_prev] != parent_now ){
 					//these edges don't exist anymore
-					ret = tsk_edge_table_add_row(&tables.edges, prev_mtr.tree.nodes[n].SNP_begin, pos_end, convert_nodes[parent_prev], convert_nodes[n], NULL, 0); // (char*)(&length), sizeof(length));
+					ret = tsk_edge_table_add_row(&tables.edges, prev_mtr.tree.nodes[n].SNP_begin, pos_end, convert_nodes[parent_prev], convert_nodes[n], NULL, 0);
 					if(n_now > 0) mtr.tree.nodes[n_now].SNP_begin = pos_end; 
 					check_tsk_error(ret); 
 					edge_count++; 
 				}
 			}
 
+			// Update node table
 			for(int n = N; n < 2*N-1; n++){
 				if(update_backwards[n] == 0){
-					convert_nodes[n] = node_count;
-					//new node, so add to node table
-					node_age[node_count] = 0.0;
-					node_span[node_count] = 0.0;
+					convert_nodes[n] = node_count; //new node, so add to node table
+					node_age.push_back(0.0);
+					node_span.push_back(0.0);
 					ret = tsk_node_table_add_row(&tables.nodes, 0, leaves[n].num_leaves - 1, TSK_NULL, TSK_NULL, (char*)(&node_age[node_count]), sizeof(double));  
 					mtr.tree.nodes[n].SNP_begin = pos; 
 					node_count++;
@@ -688,10 +793,9 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
 					convert_nodes[n] = convert_nodes_prev[n];
 				}
 			}          
-
 		}
 
-		//Mutation table
+		// Update mutation table
 		int l = snp;
 		while((*it_mut).tree == tree_count){
 			if((*it_mut).branch.size() == 1){
@@ -715,11 +819,11 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
 		snp_end = l;
 		if(snp_end < L){
 			pos_end = (*it_mut).pos;
-		}else{
+		} else {
 			pos_end = (*std::prev(ancmut.mut_end(),1)).pos + 1;
 		}
 
-		// update average node age
+		// Update average node age
 		double span = pos_end - pos;
 		for(int n = N; n < 2*N-1; n++){
 			node_age[convert_nodes[n]] += span * (double)(coordinates[n]);
@@ -727,36 +831,45 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
 		}
 		total_span += span;
 
-		//load next tree
+		// Load next tree
 		prev_mtr                = mtr;
 		prev_leaves             = leaves;
 		num_bases_tree_persists = ancmut.NextTree(mtr, it_mut);
 		mtr.tree.FindAllLeaves(leaves);
 	} 
 
-	//for last tree need to dump all edges
+	// For last tree, dump all edges
 	for(int n = 0; n < 2*N-2; n++){        
 		int parent_prev = (*prev_mtr.tree.nodes[n].parent).label;
-		ret = tsk_edge_table_add_row(&tables.edges, prev_mtr.tree.nodes[n].SNP_begin, pos_end, convert_nodes[parent_prev], convert_nodes[n], NULL, 0); //(char*)(&length), sizeof(length));
+		ret = tsk_edge_table_add_row(&tables.edges, prev_mtr.tree.nodes[n].SNP_begin, pos_end, convert_nodes[parent_prev], convert_nodes[n], NULL, 0);
 		check_tsk_error(ret); 
 		edge_count++;
 	}
 
-	std::cerr << "Node count; edge count; tree count; root count" << std::endl;
-	std::cerr << node_count << " " << edge_count << " " << tree_count << " " << root_count << std::endl;
+	std::cerr << "\tNodes: " << node_count << std::endl;
+	std::cerr << "\tEdges: " << edge_count << std::endl;
+	std::cerr << "\tTrees: " << tree_count << std::endl;
+	std::cerr << "\tRoots: " << root_count << std::endl;
 
-	// copy node ages into metadata
+	// Copy node ages into metadata
 	assert (node_age.size() == tables.nodes.num_rows);
+	assert (node_span.size() == tables.nodes.num_rows);
 	double average_age[node_age.size()];
 	for (int i=0; i<node_age.size(); i++){
 		average_age[i] = node_age[i] / node_span[i];
 	}
-	std::memcpy(tables.nodes.metadata, average_age, sizeof(double)*node_age.size());
+	std::memcpy(tables.nodes.metadata, average_age, sizeof(double)*tables.nodes.num_rows);
 
+	// Find closest node ages (in least-squares sense) that result in
+	// positive branch lengths
+	ret = AddConstrainedNodeAge(tables, average_age, NULL, N);
+
+	// Sort table (may fail if iterative node age recalibration didn't reach tolerance)
 	ret = tsk_table_collection_sort(&tables, NULL, 0);
 	check_tsk_error(ret);
 	ret = tsk_table_collection_build_index(&tables, 0);
 	check_tsk_error(ret);
+
 	//////////////////////////
 
 	// Write out the tree sequence

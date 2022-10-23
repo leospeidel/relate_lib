@@ -36,7 +36,7 @@ ConvertToTreeSequence(cxxopts::Options& options){
   std::cerr << "---------------------------------------------------------" << std::endl;
   std::cerr << "Converting " << options["anc"].as<std::string>() << " and " << options["mut"].as<std::string>() << " to tree sequence..." << std::endl;
   if (compress){
-    std::cerr << "Combining equivalent branches and nodes; node age is stored as double precision in node metadata ..." << std::endl;
+    std::cerr << "Combining equivalent branches and nodes (unconstrained node age will be stored as double precision in node metadata) ..." << std::endl;
   }
 
   ////////// 1. Dump in tree sequence file format ////////

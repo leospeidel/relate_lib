@@ -84,7 +84,8 @@ def constrain_ages_quadprog(ts, node_age, min_len, starting_state=None, **kwargs
     A = node_age_to_branch_length(ts)
     P = scipy.sparse.spdiags(1/np.sqrt(xhat), 0, len(xhat), len(xhat))
     obj = cp.Minimize(cp.sum_squares(P @ x - P @ xhat))
-    constr = [A @ x >= eps_edge, x >= eps_node]
+    #constr = [A @ x >= eps_edge, x >= eps_node]
+    constr = [A @ x >= eps_edge]
     prob = cp.Problem(obj, constr)
     result = prob.solve(**kwargs)
     min_edge = np.min(A @ x.value)
@@ -108,6 +109,7 @@ if __name__ == "__main__":
     if not args.skip_optimization:
         if args.verbose:
             print(f"Finding constrained branch lengths ...")
+        #solver_args = {"solver":"SCS", "eps":args.eps, "max_iters":100000, "verbose":args.verbose, "use_indirect":True} #slow!
         solver_args = {"solver":"OSQP", "eps_rel":args.eps, "eps_abs":args.eps, "max_iter":args.max_iters, "verbose":args.verbose}
         node_times_constrained, min_edge_length = constrain_ages_quadprog(ts, node_times_constrained, args.minimum_branch_length, args.starting_state, **solver_args)
 
