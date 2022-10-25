@@ -19,6 +19,8 @@ ConvertToTreeSequence(cxxopts::Options& options){
 
   bool help = false;
   bool compress = false;
+  bool verbose = false;
+  bool add_polytomies = false;
   if(!options.count("anc") || !options.count("mut") || !options.count("output")){
     std::cout << "Not enough arguments supplied." << std::endl;
     std::cout << "Needed: anc, mut, output." << std::endl;
@@ -32,6 +34,12 @@ ConvertToTreeSequence(cxxopts::Options& options){
   if(options.count("compress")){
     compress = true;
   }
+  //if(options.count("add_polytomies")){
+  //  add_polytomies = true;
+  //}
+  if(options.count("verbose")){
+    verbose = true;
+  }
 
   std::cerr << "---------------------------------------------------------" << std::endl;
   std::cerr << "Converting " << options["anc"].as<std::string>() << " and " << options["mut"].as<std::string>() << " to tree sequence..." << std::endl;
@@ -43,8 +51,27 @@ ConvertToTreeSequence(cxxopts::Options& options){
   
   std::string outfile = options["output"].as<std::string>() + ".trees";
   if (compress){
-    //combine identical branches in adjacent trees, sticking average node time (weighted by span) into metadata
-    DumpAsCompressedTreeSequence(options["anc"].as<std::string>(), options["mut"].as<std::string>(), outfile);
+    //combine identical branches in adjacent trees, 
+    //estimate constrained node ages via inequality restricted least squares,
+    //put unconstrained average node age into metadata
+//    if (add_polytomies){
+//      DumpAsTreeSequenceWithPolytomies(
+//        options["anc"].as<std::string>(), 
+//        options["mut"].as<std::string>(), 
+//        options["haps"].as<std::string>(), 
+//        options["samples"].as<std::string>(), 
+//        outfile
+//      );
+//    } else {
+      DumpAsCompressedTreeSequence(
+        options["anc"].as<std::string>(), 
+        options["mut"].as<std::string>(), 
+        outfile,
+        options["tolerance"].as<double>(), 
+        options["iterations"].as<int>(), 
+        verbose
+      );
+//    }
   } else {
     //new set of nodes for each tree (this does not compress trees)
     DumpAsTreeSequence(options["anc"].as<std::string>(), options["mut"].as<std::string>(), outfile);
@@ -136,10 +163,16 @@ int main(int argc, char* argv[]){
   options.add_options()
     ("help", "Print help.")
     ("compress", "Compress tree sequence by combining equivalent nodes in adjacent trees.")
+//    ("add_polytomies", "Remove branches with no mutations [with --compress].")
+    ("verbose", "Print optimization progress [with --compress].")
+    ("tolerance", "Optimization convergence tolerance [with --compress].", cxxopts::value<double>()->default_value("1e-3"))
+    ("iterations", "Terminate optimization after this many iterations [with --compress].", cxxopts::value<int>()->default_value("500"))
     ("mode", "Choose which part of the algorithm to run.", cxxopts::value<std::string>())
     ("anc", "Filename of file containing trees.", cxxopts::value<std::string>())
     ("mut", "Filename of file containing mut.", cxxopts::value<std::string>())
-    ("no_bl", "If specified, assume that tree sequence has no branch lengths")
+//    ("haps", "Filename of file containing haps [with --add_polytomies].", cxxopts::value<std::string>())
+//    ("samples", "Filename of file containing samples [with --add_polytomies].", cxxopts::value<std::string>())
+    ("no_bl", "If specified, assume that tree sequence has no branch lengths.")
     ("seed", "Random seed (int).", cxxopts::value<int>())
     ("i,input", "Filename of input.", cxxopts::value<std::string>())
     ("o,output", "Filename of output (excl file extension).", cxxopts::value<std::string>());
