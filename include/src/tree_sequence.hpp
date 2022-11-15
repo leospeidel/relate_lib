@@ -487,47 +487,43 @@ AddConstrainedNodeAgeLeastSquares(tsk_table_collection_t& tables, const int N, c
 	 *  NB: `tables` and `node_age` are modified _in place_.
 	 */
 	int max_iter = iterations; 
-  bool use_weights = false;
 	double eps = 0.0;
 	double tol = eps - tolerance; // stop if tol < min(branch_length) <= eps
-	int ret = 1; //TODO: should print min squared error on return
+	int ret = 1;
 
 	assert (eps >= 0.0);
 	assert (tol <= eps);
 
-  double weight_p, weight_c;
+  std::vector<double> adj_len (tables.edges.num_rows, 0.0);
 
-  // TODO: Switch to a sparser storage format, as proj_p`/`proj_c` only need to
-  // be stored if they are non-zero.  So could use 
-  // std::map<int, std::tuple<double, double>>
-	std::vector<double> proj_p (tables.edges.num_rows, 0.0); 
-	std::vector<double> proj_c (tables.edges.num_rows, 0.0); 
 	tsk_size_t p, c;
 	int iter = 0;
-	double adj_len, dual_gap, constraint;
+	double dual_gap, constraint;
+
 	do {
 		iter++;
 		for (tsk_size_t e=0; e<tables.edges.num_rows; e++){
 			p = tables.edges.parent[e];
 			c = tables.edges.child[e];
 
-			tables.nodes.time[p] -= proj_p[e];
-			tables.nodes.time[c] -= proj_c[e];
-			proj_p[e] = 0.0;
-			proj_c[e] = 0.0;
-			adj_len = tables.nodes.time[c] - tables.nodes.time[p] + eps;
-			if (adj_len > 0.0){ //constraint violated
-				if (c >= N){ //free to reproject both child and parent
-          weight_p = use_weights ? tables.nodes.time[p] : 1.0; 
-          weight_c = use_weights ? tables.nodes.time[c] : 1.0;
-					proj_p[e] =  adj_len * 1.0/weight_p * 1.0/(1.0/weight_c + 1.0/weight_p);
-					proj_c[e] = -adj_len * 1.0/weight_c * 1.0/(1.0/weight_c + 1.0/weight_p);
-				} else { //"condition on" sample ages by setting weight_c to 0.0
-					proj_p[e] = adj_len;
+			if (adj_len[e] > 0.0){ //constraint violated previously
+        if (c >= N){
+          tables.nodes.time[p] -= adj_len[e] * 0.5;
+          tables.nodes.time[c] += adj_len[e] * 0.5;
+        } else {
+          tables.nodes.time[p] -= adj_len[e];
+        }
+      }
+
+			adj_len[e] = tables.nodes.time[c] - tables.nodes.time[p] + eps;
+			if (adj_len[e] > 0.0){ //constraint violated currently
+				if (c >= N){ 
+          tables.nodes.time[p] += adj_len[e] * 0.5;
+          tables.nodes.time[c] -= adj_len[e] * 0.5;
+				} else { 
+          tables.nodes.time[p] += adj_len[e];
 				}
 			}
-			tables.nodes.time[p] += proj_p[e];
-			tables.nodes.time[c] += proj_c[e];
 		}
 
 		// residual for the dual problem
@@ -535,21 +531,21 @@ AddConstrainedNodeAgeLeastSquares(tsk_table_collection_t& tables, const int N, c
 		for (tsk_size_t e=0; e<tables.edges.num_rows; e++){
 			p = tables.edges.parent[e];
 			c = tables.edges.child[e];
-			constraint = tables.nodes.time[p] - tables.nodes.time[c] - eps;
+			constraint = tables.nodes.time[p] - tables.nodes.time[c];
 			if (constraint < dual_gap){
 				dual_gap = constraint;
 			}
 		}
 
 		if (verbose && (iter % 10 == 0)) {
-			std::cout << "\t[" << iter << "] min(branch length) = " << dual_gap + eps << std::endl;
+			std::cout << "\t[" << iter << "] min(branch length) = " << dual_gap << std::endl;
 		}
 
 		// success: min branch length is within convergence tol
 		if (dual_gap > tol){
 			if (verbose){
 				std::cout << "Solution reached in " << iter << " iterations with " <<
-					"min(branch length) = " << dual_gap + eps << " > " << tol <<
+					"min(branch length) = " << dual_gap << " > " << tol <<
 					" ..." << std::endl;
 			}
 			ret = 0;

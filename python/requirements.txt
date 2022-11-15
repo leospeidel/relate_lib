@@ -1,5 +1,0 @@
-cvxpy
-numpy
-tskit
-scipy
-matplotlib
