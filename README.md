@@ -22,6 +22,30 @@ make
 
 ## Documentation
 
-Still working on the documentation.
-Please see ./include/example/Example.cpp for example code and ./example/example.sh for how to run the examples.
+### Conversion from tskit format
+````bash
+relate_lib/bin/Convert --mode ConvertFromTreeSequence \
+              --anc example.anc.gz \
+              --mut example.mut.gz \
+              -i example
+````
+
+### Conversion to tskit format
+````bash
+relate_lib/bin/Convert --mode ConvertToTreeSequence \
+              --anc example.anc.gz \
+              --mut example.mut.gz \
+              -o example
+````
+Thanks to <b>Nathaniel S. Pope</b>, you can now also specify an argument that <b>compresses</b> these Relate-converted tree sequences by assigning the same age to nodes with identical descendant sets across adjacent trees.
+````bash
+relate_lib/bin/Convert --mode ConvertToTreeSequence \
+              --compress \
+              --anc example.anc.gz \
+              --mut example.mut.gz \
+              -o example
+````
+
+### C++ library 
+Please see ./include/example/Example.cpp for example code and ./example/example.sh for examples and how to run them.
 
