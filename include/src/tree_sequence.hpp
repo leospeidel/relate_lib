@@ -1006,6 +1006,10 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
             meta = (char *) realloc(meta, metasize);
             sprintf(meta, "%.2f", prev_branch_persistence[n]);
 
+            if(prev_branch_persistence[n]+1000 < pos_end - prev_mtr.tree.nodes[n].SNP_begin){
+              std::cerr << prev_branch_persistence[n] << " " << pos_end - prev_mtr.tree.nodes[n].SNP_begin << std::endl;
+            }
+
             ret = tsk_edge_table_add_row(&tables.edges, prev_mtr.tree.nodes[n].SNP_begin, pos_end, convert_nodes[parent_prev], convert_nodes[n], meta, metasize);
             check_tsk_error(ret); 
             edge_count++;
@@ -1017,6 +1021,10 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
           metasize = snprintf(NULL, 0,"%.2f",prev_branch_persistence[n]) + 1;
           meta = (char *) realloc(meta, metasize);
           sprintf(meta, "%.2f", prev_branch_persistence[n]);
+
+          if(prev_branch_persistence[n]+1000 < pos_end - prev_mtr.tree.nodes[n].SNP_begin){
+            std::cerr << prev_branch_persistence[n] << " " << pos_end - prev_mtr.tree.nodes[n].SNP_begin << std::endl;
+          }
 
           ret = tsk_edge_table_add_row(&tables.edges, prev_mtr.tree.nodes[n].SNP_begin, pos_end, convert_nodes[parent_prev], convert_nodes[n], meta, metasize);
           if(n_now > 0) mtr.tree.nodes[n_now].SNP_begin = pos_end; 
@@ -1098,9 +1106,13 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
   for(int n = 0; n < 2*N-2; n++){        
     int parent_prev = (*prev_mtr.tree.nodes[n].parent).label;
 
-    metasize = snprintf(NULL, 0,"%.2f",prev_branch_persistence[n]) + 1;
+    metasize = snprintf(NULL, 0,"%.2f",branch_persistence[n]) + 1;
     meta = (char *) realloc(meta, metasize);
-    sprintf(meta, "%.2f", prev_branch_persistence[n]);
+    sprintf(meta, "%.2f", branch_persistence[n]);
+
+    if(branch_persistence[n]+1000 < pos_end - prev_mtr.tree.nodes[n].SNP_begin){
+      std::cerr << branch_persistence[n] << " " << pos_end - prev_mtr.tree.nodes[n].SNP_begin << std::endl;
+    }
 
     ret = tsk_edge_table_add_row(&tables.edges, prev_mtr.tree.nodes[n].SNP_begin, pos_end, convert_nodes[parent_prev], convert_nodes[n], meta, metasize);
     check_tsk_error(ret); 
