@@ -1006,8 +1006,10 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
             meta = (char *) realloc(meta, metasize);
             sprintf(meta, "%.2f", prev_branch_persistence[n]);
 
+            if(0){
             if(prev_branch_persistence[n]+1000 < pos_end - prev_mtr.tree.nodes[n].SNP_begin){
               std::cerr << prev_branch_persistence[n] << " " << pos_end - prev_mtr.tree.nodes[n].SNP_begin << std::endl;
+            }
             }
 
             ret = tsk_edge_table_add_row(&tables.edges, prev_mtr.tree.nodes[n].SNP_begin, pos_end, convert_nodes[parent_prev], convert_nodes[n], meta, metasize);
@@ -1022,8 +1024,10 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
           meta = (char *) realloc(meta, metasize);
           sprintf(meta, "%.2f", prev_branch_persistence[n]);
 
+          if(0){
           if(prev_branch_persistence[n]+1000 < pos_end - prev_mtr.tree.nodes[n].SNP_begin){
             std::cerr << prev_branch_persistence[n] << " " << pos_end - prev_mtr.tree.nodes[n].SNP_begin << std::endl;
+          }
           }
 
           ret = tsk_edge_table_add_row(&tables.edges, prev_mtr.tree.nodes[n].SNP_begin, pos_end, convert_nodes[parent_prev], convert_nodes[n], meta, metasize);
@@ -1110,8 +1114,10 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
     meta = (char *) realloc(meta, metasize);
     sprintf(meta, "%.2f", branch_persistence[n]);
 
+    if(0){
     if(branch_persistence[n]+1000 < pos_end - prev_mtr.tree.nodes[n].SNP_begin){
       std::cerr << branch_persistence[n] << " " << pos_end - prev_mtr.tree.nodes[n].SNP_begin << std::endl;
+    }
     }
 
     ret = tsk_edge_table_add_row(&tables.edges, prev_mtr.tree.nodes[n].SNP_begin, pos_end, convert_nodes[parent_prev], convert_nodes[n], meta, metasize);
