@@ -64,7 +64,6 @@ class AncMutIterators{
 
     igzstream is;
     Muts::iterator pit_mut;
-    Mutations mut;
     std::vector<double>::iterator it_dist, it_pos; 
     std::vector<double> dist, pos;
 
@@ -76,6 +75,7 @@ class AncMutIterators{
   public:
 
     std::vector<double> sample_ages;
+    Mutations mut;
     AncMutIterators(){};
     AncMutIterators(const std::string& filename_anc, const std::string& filename_mut);
     AncMutIterators(const std::string& filename_anc, const std::string& filename_mut, const std::string& filename_dist);

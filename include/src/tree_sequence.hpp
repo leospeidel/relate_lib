@@ -894,11 +894,24 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
 
   double total_span = 0.0;
   char derived_allele[1];
+
+  int metasize;
+  char *meta;
+  meta = (char *) malloc(1024);
+  std::vector<float> prev_branch_persistence(2*N-1,0.0),branch_persistence(2*N-1,0.0);
   while(num_bases_tree_persists >= 0.0){
 
     mtr.tree.GetCoordinates(coordinates);
     pos = (*it_mut).pos;
     if(mtr.pos == 0) pos = 0;
+   
+    prev_branch_persistence = branch_persistence;
+    std::vector<float>::iterator it_branch_persistence = branch_persistence.begin();
+    for(std::vector<Node>::iterator it_node = mtr.tree.nodes.begin(); it_node != mtr.tree.nodes.end(); it_node++){
+      *it_branch_persistence = ancmut.mut.info[(*it_node).SNP_end].pos - ancmut.mut.info[(*it_node).SNP_begin].pos; //TODO:add mask file and add 0.5*dist to flanking SNPs
+      it_branch_persistence++;
+    }
+
     for(std::vector<Node>::iterator it_node = mtr.tree.nodes.begin(); it_node != mtr.tree.nodes.end(); it_node ++){
       (*it_node).SNP_begin = pos;
     }
@@ -987,15 +1000,25 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
 
         if(n < N){
           if( update_forwards[parent_prev] != parent_now ){
-            //these edges don't exist anymore 
-            ret = tsk_edge_table_add_row(&tables.edges, prev_mtr.tree.nodes[n].SNP_begin, pos_end, convert_nodes[parent_prev], convert_nodes[n], NULL, 0);
+            //these edges don't exist anymore
+            
+            metasize = snprintf(NULL, 0,"%.2f",prev_branch_persistence[n]) + 1;
+            meta = (char *) realloc(meta, metasize);
+            sprintf(meta, "%.2f", prev_branch_persistence[n]);
+
+            ret = tsk_edge_table_add_row(&tables.edges, prev_mtr.tree.nodes[n].SNP_begin, pos_end, convert_nodes[parent_prev], convert_nodes[n], meta, metasize);
             check_tsk_error(ret); 
             edge_count++;
             mtr.tree.nodes[n].SNP_begin = pos_end; 
           }
         }else if( n_now == 0 || update_forwards[parent_prev] != parent_now ){
           //these edges don't exist anymore
-          ret = tsk_edge_table_add_row(&tables.edges, prev_mtr.tree.nodes[n].SNP_begin, pos_end, convert_nodes[parent_prev], convert_nodes[n], NULL, 0);
+          
+          metasize = snprintf(NULL, 0,"%.2f",prev_branch_persistence[n]) + 1;
+          meta = (char *) realloc(meta, metasize);
+          sprintf(meta, "%.2f", prev_branch_persistence[n]);
+
+          ret = tsk_edge_table_add_row(&tables.edges, prev_mtr.tree.nodes[n].SNP_begin, pos_end, convert_nodes[parent_prev], convert_nodes[n], meta, metasize);
           if(n_now > 0) mtr.tree.nodes[n_now].SNP_begin = pos_end; 
           check_tsk_error(ret); 
           edge_count++; 
@@ -1074,7 +1097,12 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
   tree_count++;
   for(int n = 0; n < 2*N-2; n++){        
     int parent_prev = (*prev_mtr.tree.nodes[n].parent).label;
-    ret = tsk_edge_table_add_row(&tables.edges, prev_mtr.tree.nodes[n].SNP_begin, pos_end, convert_nodes[parent_prev], convert_nodes[n], NULL, 0);
+
+    metasize = snprintf(NULL, 0,"%.2f",prev_branch_persistence[n]) + 1;
+    meta = (char *) realloc(meta, metasize);
+    sprintf(meta, "%.2f", prev_branch_persistence[n]);
+
+    ret = tsk_edge_table_add_row(&tables.edges, prev_mtr.tree.nodes[n].SNP_begin, pos_end, convert_nodes[parent_prev], convert_nodes[n], meta, metasize);
     check_tsk_error(ret); 
     edge_count++;
   }

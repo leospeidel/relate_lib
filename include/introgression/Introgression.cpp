@@ -11,15 +11,19 @@ int main(int argc, char* argv[]){
   options.add_options()
     ("help", "Print help.")
     ("mode", "Choose which part of the algorithm to run.", cxxopts::value<std::string>())
+    ("haps", "Filename of haps file (Output file format of Shapeit).", cxxopts::value<std::string>())
+    ("sample", "Filename of sample file (Output file format of Shapeit).", cxxopts::value<std::string>())
     ("i,input", "Filename of anc and mut files without file extension.", cxxopts::value<std::string>())
     ("o,output", "Filename for updated anc and mut files without file extension.", cxxopts::value<std::string>())
     ("ancient", "Filename of file containing bp of SNPs shared with ancient groups.", cxxopts::value<std::string>())
     ("branches", "Filename of file containing introgression branches (in .mut file format).", cxxopts::value<std::string>())
+    ("pop_of_interest", "Population label. If not specified, use all haplotypes.", cxxopts::value<std::string>())
     ("poplabels", "Optional: Filename of file containing population labels. If ='hap', each haplotype is in its own group.", cxxopts::value<std::string>()) 
     ("num_bins", "Optional: Number of bins.", cxxopts::value<int>())
     ("mask", "Filename of file containing mask", cxxopts::value<std::string>())
     ("first_chr", "Optional: Index of fist chr", cxxopts::value<int>())
     ("last_chr", "Optional: Index of last chr", cxxopts::value<int>())
+    ("chr", "Filename containing chr", cxxopts::value<std::string>())
     ("seed", "Seed for MCMC in branch lengths estimation.", cxxopts::value<int>());
 
   options.parse(argc, argv);
@@ -29,6 +33,14 @@ int main(int argc, char* argv[]){
   if(!mode.compare("GetEquivalentBranches")){
 
     GetEquivalentBranches(options);
+
+  }else if(!mode.compare("TMRCAbyTopo")){
+
+    TMRCAbyTopo(options);
+
+  }else if(!mode.compare("TMRCAbyTopo2")){
+
+    TMRCAbyTopo2(options);
 
   }else{
 
