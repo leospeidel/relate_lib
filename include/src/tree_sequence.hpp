@@ -899,6 +899,7 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
   char *meta;
   meta = (char *) malloc(1024);
   std::vector<float> prev_branch_persistence(2*N-1,0.0),branch_persistence(2*N-1,0.0);
+  std::vector<int> SNPbegin(2*N-1,0.0),SNPend(2*N-1,0.0),prevSNPbegin(2*N-1,0.0),prevSNPend(2*N-1,0.0);
   while(num_bases_tree_persists >= 0.0){
 
     mtr.tree.GetCoordinates(coordinates);
@@ -911,6 +912,16 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
       *it_branch_persistence = ancmut.mut.info[(*it_node).SNP_end].pos - ancmut.mut.info[(*it_node).SNP_begin].pos; //TODO:add mask file and add 0.5*dist to flanking SNPs
       it_branch_persistence++;
     }
+    prevSNPbegin = SNPbegin;
+    prevSNPend   = SNPend;
+    std::vector<int>::iterator it_snpbegin = SNPbegin.begin(), it_snpend = SNPend.begin();
+    for(std::vector<Node>::iterator it_node = mtr.tree.nodes.begin(); it_node != mtr.tree.nodes.end(); it_node++){
+      *it_snpbegin = ancmut.mut.info[(*it_node).SNP_begin].pos;
+      *it_snpend   = ancmut.mut.info[(*it_node).SNP_end].pos;
+      it_snpbegin++;
+      it_snpend++;
+    }
+
 
     for(std::vector<Node>::iterator it_node = mtr.tree.nodes.begin(); it_node != mtr.tree.nodes.end(); it_node ++){
       (*it_node).SNP_begin = pos;
@@ -1001,14 +1012,21 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
         if(n < N){
           if( update_forwards[parent_prev] != parent_now ){
             //these edges don't exist anymore
-            
+           
+            if(0){
             metasize = snprintf(NULL, 0,"%.2f",prev_branch_persistence[n]) + 1;
             meta = (char *) realloc(meta, metasize);
             sprintf(meta, "%.2f", prev_branch_persistence[n]);
+            }
+            metasize = snprintf(NULL, 0,"%d",prevSNPbegin[n]) + snprintf(NULL, 0,"%d",prevSNPend[n]) + 1;
+            meta = (char *) realloc(meta, metasize);
+            sprintf(meta, "%d %d", prevSNPbegin[n], prevSNPend[n]);
 
             if(0){
             if(prev_branch_persistence[n]+1000 < pos_end - prev_mtr.tree.nodes[n].SNP_begin){
               std::cerr << prev_branch_persistence[n] << " " << pos_end - prev_mtr.tree.nodes[n].SNP_begin << std::endl;
+              std::cerr << "begin: " << SNPbegin[n] << " " << prev_mtr.tree.nodes[n].SNP_begin << std::endl;
+              std::cerr << "end: " << SNPend[n] << " " << pos_end << std::endl;
             }
             }
 
@@ -1020,13 +1038,20 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
         }else if( n_now == 0 || update_forwards[parent_prev] != parent_now ){
           //these edges don't exist anymore
           
-          metasize = snprintf(NULL, 0,"%.2f",prev_branch_persistence[n]) + 1;
+          if(0){
+            metasize = snprintf(NULL, 0,"%.2f",prev_branch_persistence[n]) + 1;
+            meta = (char *) realloc(meta, metasize);
+            sprintf(meta, "%.2f", prev_branch_persistence[n]);
+          }
+          metasize = snprintf(NULL, 0,"%d",prevSNPbegin[n]) + snprintf(NULL, 0,"%d",prevSNPend[n]) + 1;
           meta = (char *) realloc(meta, metasize);
-          sprintf(meta, "%.2f", prev_branch_persistence[n]);
+          sprintf(meta, "%d %d", prevSNPbegin[n], prevSNPend[n]);
 
           if(0){
           if(prev_branch_persistence[n]+1000 < pos_end - prev_mtr.tree.nodes[n].SNP_begin){
             std::cerr << prev_branch_persistence[n] << " " << pos_end - prev_mtr.tree.nodes[n].SNP_begin << std::endl;
+            std::cerr << "begin: " << SNPbegin[n] << " " << prev_mtr.tree.nodes[n].SNP_begin << std::endl;
+            std::cerr << "end: " << SNPend[n] << " " << pos_end << std::endl;
           }
           }
 
@@ -1110,9 +1135,14 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
   for(int n = 0; n < 2*N-2; n++){        
     int parent_prev = (*prev_mtr.tree.nodes[n].parent).label;
 
-    metasize = snprintf(NULL, 0,"%.2f",branch_persistence[n]) + 1;
+    if(0){
+      metasize = snprintf(NULL, 0,"%.2f",branch_persistence[n]) + 1;
+      meta = (char *) realloc(meta, metasize);
+      sprintf(meta, "%.2f", branch_persistence[n]);
+    }
+    metasize = snprintf(NULL, 0,"%d",SNPbegin[n]) + snprintf(NULL, 0,"%d",prevSNPend[n]) + 1;
     meta = (char *) realloc(meta, metasize);
-    sprintf(meta, "%.2f", branch_persistence[n]);
+    sprintf(meta, "%d %d", SNPbegin[n], SNPend[n]);
 
     if(0){
     if(branch_persistence[n]+1000 < pos_end - prev_mtr.tree.nodes[n].SNP_begin){
