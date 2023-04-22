@@ -917,7 +917,11 @@ DumpAsCompressedTreeSequence(const std::string& filename_anc, const std::string&
     std::vector<int>::iterator it_snpbegin = SNPbegin.begin(), it_snpend = SNPend.begin();
     for(std::vector<Node>::iterator it_node = mtr.tree.nodes.begin(); it_node != mtr.tree.nodes.end(); it_node++){
       *it_snpbegin = ancmut.mut.info[(*it_node).SNP_begin].pos;
-      *it_snpend   = ancmut.mut.info[(*it_node).SNP_end].pos;
+      if((*it_node).SNP_end < ancmut.mut.info.size()-1){
+        *it_snpend   = ancmut.mut.info[(*it_node).SNP_end+1].pos;
+      }else{
+        *it_snpend   = ancmut.mut.info[(*it_node).SNP_end].pos;
+      }
       it_snpbegin++;
       it_snpend++;
     }
