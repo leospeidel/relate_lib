@@ -612,6 +612,10 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
     //Edge table
     for(it_node = mtr.tree.nodes.begin(); it_node != std::prev(mtr.tree.nodes.end(),1); it_node++){
       node = (*it_node).label;
+      metasize = snprintf(NULL, 0,"%d",SNPbegin[node]) + snprintf(NULL, 0,"%d",SNPend[node]) + 1;
+      meta = (char *) realloc(meta, metasize);
+      sprintf(meta, "%d %d", SNPbegin[node], SNPend[node]);
+      
       if(node >= data.N) node += node_const;
 
       if(0){
@@ -632,10 +636,6 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
       branches = (char *) realloc(branches, size);
       sprintf(branches, "%d %d", prev_branch, next_branch);
       }
-
-      metasize = snprintf(NULL, 0,"%d",SNPbegin[n]) + snprintf(NULL, 0,"%d",SNPend[n]) + 1;
-      meta = (char *) realloc(meta, metasize);
-      sprintf(meta, "%d %d", SNPbegin[n], SNPend[n]);
 
       //ret = tsk_edge_table_add_row(&tables.edges, pos, pos_end, (*(*it_node).parent).label + node_const, node, branches, size);    
       ret = tsk_edge_table_add_row(&tables.edges, pos, pos_end, (*(*it_node).parent).label + node_const, node, meta, metasize);    
