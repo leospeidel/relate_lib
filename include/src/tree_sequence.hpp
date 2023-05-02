@@ -493,8 +493,12 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
   char derived_allele[1];
   char *branches;
   int prev_branch, next_branch;
+
+  int metasize, size;
+  char *meta;
+  meta = (char *) malloc(1024);
   branches = (char *) malloc(1024);
-  int size;
+  std::vector<int> SNPbegin(2*N-1,0.0),SNPend(2*N-1,0.0);
   while(num_bases_tree_persists >= 0.0){
 
     it_mut = it_mut_current;
@@ -515,6 +519,18 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
 
     for(int i = 0; i < mtr.tree.nodes.size()-1; i++){  
       assert(coordinates[i] < coordinates[(*mtr.tree.nodes[i].parent).label]);
+    }
+
+    std::vector<int>::iterator it_snpbegin = SNPbegin.begin(), it_snpend = SNPend.begin();
+    for(std::vector<Node>::iterator it_node = mtr.tree.nodes.begin(); it_node != mtr.tree.nodes.end(); it_node++){
+      *it_snpbegin = ancmut.mut.info[(*it_node).SNP_begin].pos;
+      if((*it_node).SNP_end < ancmut.mut.info.size()-1){
+        *it_snpend   = ancmut.mut.info[(*it_node).SNP_end+1].pos;
+      }else{
+        *it_snpend   = ancmut.mut.info[(*it_node).SNP_end].pos;
+      }
+      it_snpbegin++;
+      it_snpend++;
     }
 
     snp = mtr.pos;
@@ -617,8 +633,12 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
       sprintf(branches, "%d %d", prev_branch, next_branch);
       }
 
+      metasize = snprintf(NULL, 0,"%d",SNPbegin[n]) + snprintf(NULL, 0,"%d",SNPend[n]) + 1;
+      meta = (char *) realloc(meta, metasize);
+      sprintf(meta, "%d %d", SNPbegin[n], SNPend[n]);
+
       //ret = tsk_edge_table_add_row(&tables.edges, pos, pos_end, (*(*it_node).parent).label + node_const, node, branches, size);    
-      ret = tsk_edge_table_add_row(&tables.edges, pos, pos_end, (*(*it_node).parent).label + node_const, node, NULL, 0);    
+      ret = tsk_edge_table_add_row(&tables.edges, pos, pos_end, (*(*it_node).parent).label + node_const, node, meta, metasize);    
       check_tsk_error(ret);
       edge_count++;
     }
