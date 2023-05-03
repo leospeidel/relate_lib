@@ -16,7 +16,8 @@
 
 
 // Adapted from donated nonius code.
-
+#undef MINSIGSTKSZ
+#define MINSIGSTKSZ 16384
 
 
 #include <cassert>
