@@ -1,0 +1,4 @@
+/Users/speidel/Documents/genomics/software/relate_lib/include/src/gzstream/CMakeFiles/gzstreamStatic.dir
+/Users/speidel/Documents/genomics/software/relate_lib/include/src/gzstream/CMakeFiles/gzstreamShared.dir
+/Users/speidel/Documents/genomics/software/relate_lib/include/src/gzstream/CMakeFiles/edit_cache.dir
+/Users/speidel/Documents/genomics/software/relate_lib/include/src/gzstream/CMakeFiles/rebuild_cache.dir

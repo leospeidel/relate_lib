@@ -2353,6 +2353,15 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
           num_children = 0;
           for(v = tree.left_child[u]; v != TSK_NULL; v = tree.right_sib[v]) num_children++;
 
+					if(0){
+					std::cerr << num_children << std::endl;
+					for(v = tree.left_child[u]; v != TSK_NULL; v = tree.right_sib[v]){
+					if(num_children == 1){
+					std::cerr << u << " " << v << " " << "is_sample: " << tsk_treeseq_is_sample(&ts, v) << std::endl;
+					}
+					}
+					}
+
           if(num_children == 2){
             for(v = tree.left_child[u]; v != TSK_NULL; v = tree.right_sib[v]){
 
@@ -2377,7 +2386,8 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
               mtr.tree.nodes[node].branch_length = t2 - t1;
               mtr.tree.nodes[node].SNP_begin = snp; //first SNP index
             } 
-          }else{
+					}else if(num_children > 2){
+
             //assert(num_children == 2);
             //break polytomies at random
             std::vector<tsk_id_t> children(num_children);
@@ -2472,11 +2482,12 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 
         }
 
-        for(v = tree.left_child[u]; v != TSK_NULL; v = tree.right_sib[v]){
-          stack_top++;
-          stack[stack_top] = v;
-        }
+					for(v = tree.left_child[u]; v != TSK_NULL; v = tree.right_sib[v]){
+						stack_top++;
+						stack[stack_top] = v;
+					}
       }
+			//std::cerr << node_count << " " << N-1 << std::endl;
       assert(node_count == N-1); 
 
       std::vector<float> coords(2*N-1, 0.0);

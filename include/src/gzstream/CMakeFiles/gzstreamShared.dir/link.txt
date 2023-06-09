@@ -1,0 +1,1 @@
+/Library/Developer/CommandLineTools/usr/bin/c++  -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX13.3.sdk -dynamiclib -Wl,-headerpad_max_install_names -o libgzstreamShared.dylib -install_name /Users/speidel/Documents/genomics/software/relate_lib/include/src/gzstream/libgzstreamShared.dylib CMakeFiles/gzstreamShared.dir/gzstream.cpp.o 

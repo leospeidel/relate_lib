@@ -14,11 +14,16 @@ Tree::ReadTree(const char* line, int N){
 	std::vector<Node>::iterator it_node = nodes.begin(); 
 	Node* p_parent;
 	int num_node = 0, parent;
+	int d1, d2, d3, d4;
 
 	while(num_node < 2*N-1){
 
-		sscanf(&line[i], "%d:(%lf %f %d %d)", &parent, &(*it_node).branch_length, &(*it_node).num_events, &(*it_node).SNP_begin, &(*it_node).SNP_end); 
-
+		sscanf(&line[i], "%d:(%lf %f %d %d)", &parent, &(*it_node).branch_length, &(*it_node).num_events, &(*it_node).SNP_begin, &(*it_node).SNP_end);
+		//if(sscanf(&line[i], "%d:(%lf %f %d %d)", &parent, &(*it_node).branch_length, &(*it_node).num_events, &(*it_node).SNP_begin, &(*it_node).SNP_end) != 5){
+		//	sscanf(&line[i], "%d:(%lf %f %d %d %d %d)", &parent, &(*it_node).branch_length, &(*it_node).num_events, &d1, &d2, &d3, &d4);  
+		//}
+		//std::cerr << parent << " " << (*it_node).branch_length << " " << (*it_node).num_events << " " <<  (*it_node).SNP_begin << " " << (*it_node).SNP_end << std::endl;
+		
 		while(line[i] != ')' && line[i] != '\n') i++;
 		i += 2;
 
