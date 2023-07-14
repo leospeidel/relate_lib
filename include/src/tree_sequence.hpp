@@ -2225,6 +2225,7 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 	//get sample nodes
 	//ret = tsk_treeseq_get_samples(&ts, &samples);
 	samples = tsk_treeseq_get_samples(&ts);
+
 	//get num sites
 	num_SNPs = tsk_treeseq_get_num_sites(&ts);
 	//get num samples
@@ -2242,6 +2243,23 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 	}
 	for(int i = 0; i < tsk_treeseq_get_num_nodes(&ts); i++){
 		node_conversion[i] = -1;
+	}
+
+	j = 0;
+	for(int i = 0; i < tsk_treeseq_get_num_individuals(&ts); i++){
+		tsk_individual_t *ind;
+		ind = (tsk_individual_t *) malloc(2 * sizeof(*ind));
+		tsk_treeseq_get_individual(&ts, i, ind);
+		//std::cerr << "Node: " << i << std::endl;
+		for(int k = 0; k < ind->nodes_length; k++){
+			if((ind->nodes[k]) < N){
+				node_conversion[j] = (ind->nodes[k]);
+				std::cerr << node_conversion[j] << " ";
+				j++;
+			}
+		}
+		std::cerr << std::endl;
+		//std::cerr << ind->nodes[0] << " " << ind->nodes[1] << std::endl;
 	}
 
 	//anc/mut variables
@@ -2289,8 +2307,8 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 	std::vector<double> sample_ages(N, 0.0);
 	bool any_ancient = false;
 	for(int n = 0; n < N; n++){
-		tsk_tree_get_time(&tree, n, &sample_ages[n]);
-		if(sample_ages[n] > 0) any_ancient = true;
+		tsk_tree_get_time(&tree, n, &sample_ages[node_conversion[n]]);
+		if(sample_ages[node_conversion[n]] > 0) any_ancient = true;
 	}
 	if(any_ancient){
 		for(int n = 0; n < N; n++){
