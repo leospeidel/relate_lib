@@ -2245,6 +2245,7 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 		node_conversion[i] = -1;
 	}
 
+	std::cerr << tsk_treeseq_get_num_individuals(&ts) << " " << N << std::endl;
 	j = 0;
 	for(int i = 0; i < tsk_treeseq_get_num_individuals(&ts); i++){
 		tsk_individual_t *ind;
@@ -2254,11 +2255,11 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 		for(int k = 0; k < ind->nodes_length; k++){
 			if((ind->nodes[k]) < N){
 				node_conversion[j] = (ind->nodes[k]);
-				std::cerr << node_conversion[j] << " ";
+				//std::cerr << node_conversion[j] << " ";
 				j++;
 			}
 		}
-		std::cerr << std::endl;
+		//std::cerr << std::endl;
 		//std::cerr << ind->nodes[0] << " " << ind->nodes[1] << std::endl;
 	}
 
@@ -2376,6 +2377,7 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 				u = stack[stack_top];
 				stack_top--;
 
+				//std::cerr << node_count << std::endl;
 				num_children = 0;
 				for(v = tree.left_child[u]; v != TSK_NULL; v = tree.right_sib[v]) num_children++;
 
