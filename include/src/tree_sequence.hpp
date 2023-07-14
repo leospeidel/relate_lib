@@ -2366,7 +2366,8 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 
 					if(tsk_treeseq_is_sample(&ts, u)){
 						if(node_conversion[u] == -1){
-							node_conversion[u] = ntip;
+							assert(u < N);
+							node_conversion[u] = u; //TODO
 							ntip++;
 						}
 					}else{
@@ -2399,7 +2400,8 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 
 							if(tsk_treeseq_is_sample(&ts, v)){
 								if(node_conversion[v] == -1){
-									node_conversion[v] = ntip;
+									assert(v < N);
+									node_conversion[v] = v; //TODO
 									ntip++;
 								}
 							}else{
@@ -2440,7 +2442,8 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 						for(v = tree.left_child[u]; v != TSK_NULL; v = tree.right_sib[v]){ 
 							if(tsk_treeseq_is_sample(&ts, v)){
 								if(node_conversion[v] == -1){
-									node_conversion[v] = ntip;
+									assert(v < N);
+									node_conversion[v] = v; //TODO
 									ntip++;
 								}
 							}else{
@@ -2449,7 +2452,6 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 								if(node_conversion[v] != -1){
 									renew = (renew || (used[node_conversion[v]] != v));
 								}
-
 								if(renew){
 									i++;
 								}
@@ -2504,7 +2506,7 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 
 							mtr.tree.nodes[childB].parent    = &mtr.tree.nodes[parent]; 
 							mtr.tree.nodes[childB].label     = childB; 
-							mtr.tree.nodes[parent].child_left  = &mtr.tree.nodes[childB];
+							mtr.tree.nodes[parent].child_right  = &mtr.tree.nodes[childB];
 							mtr.tree.nodes[childB].branch_length = 0.0;
 							mtr.tree.nodes[childB].SNP_begin = snp; //first SNP index
 
@@ -2537,7 +2539,7 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 
 						mtr.tree.nodes[childB].parent    = &mtr.tree.nodes[parent]; 
 						mtr.tree.nodes[childB].label     = childB; 
-						mtr.tree.nodes[parent].child_left  = &mtr.tree.nodes[childB];
+						mtr.tree.nodes[parent].child_right  = &mtr.tree.nodes[childB];
 						mtr.tree.nodes[childB].branch_length = t2 - t1;
 						mtr.tree.nodes[childB].SNP_begin = snp; //first SNP index
 
@@ -2556,35 +2558,80 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 					//std::cerr << mtr.tree.nodes[i].label << " " << (*mtr.tree.nodes[i].parent).label << std::endl;
 					if(mtr.tree.nodes[i].child_left != NULL){
 						int child = (*mtr.tree.nodes[i].child_left).label;
+						int parent = (*mtr.tree.nodes[i].parent).label;
+
 						mtr.tree.nodes[node_count].label = node_count;
 						mtr.tree.nodes[node_count].child_left = &mtr.tree.nodes[i];
 						mtr.tree.nodes[node_count].child_right = &mtr.tree.nodes[child];
-						mtr.tree.nodes[node_count].parent = &(*mtr.tree.nodes[i].parent);
 						mtr.tree.nodes[i].parent = &mtr.tree.nodes[node_count];
+
+						mtr.tree.nodes[node_count].parent = &mtr.tree.nodes[parent];
+            if((*mtr.tree.nodes[parent].child_left).label == i){
+							mtr.tree.nodes[parent].child_left = &mtr.tree.nodes[node_count];
+						}
+						if((*mtr.tree.nodes[parent].child_right).label == i){
+							mtr.tree.nodes[parent].child_right = &mtr.tree.nodes[node_count];
+						}
+
 						mtr.tree.nodes[child].parent = &mtr.tree.nodes[node_count];
+
 						mtr.tree.nodes[node_count].SNP_begin = snp;
 						mtr.tree.nodes[node_count].branch_length = mtr.tree.nodes[child].branch_length;
 						mtr.tree.nodes[child].branch_length = 0.0;
+						mtr.tree.nodes[i].child_left = NULL;
+						mtr.tree.nodes[i].child_right = NULL;
 						node_count--;
 						//std::cerr << i << " " << (*mtr.tree.nodes[i].child_left).label << std::endl;
 					}
 					if(mtr.tree.nodes[i].child_right != NULL){
 						int child = (*mtr.tree.nodes[i].child_right).label;
+						int parent = (*mtr.tree.nodes[i].parent).label;
+
 						mtr.tree.nodes[node_count].label = node_count;
 						mtr.tree.nodes[node_count].child_left = &mtr.tree.nodes[i];
 						mtr.tree.nodes[node_count].child_right = &mtr.tree.nodes[child];
-						mtr.tree.nodes[node_count].parent = &(*mtr.tree.nodes[i].parent);
 						mtr.tree.nodes[i].parent = &mtr.tree.nodes[node_count];
+
+						mtr.tree.nodes[node_count].parent = &mtr.tree.nodes[parent];
+            if((*mtr.tree.nodes[parent].child_left).label == i){
+							mtr.tree.nodes[parent].child_left = &mtr.tree.nodes[node_count];
+						}
+						if((*mtr.tree.nodes[parent].child_right).label == i){
+							mtr.tree.nodes[parent].child_right = &mtr.tree.nodes[node_count];
+						}
+
 						mtr.tree.nodes[child].parent = &mtr.tree.nodes[node_count];
+
 						mtr.tree.nodes[node_count].SNP_begin = snp;
 						mtr.tree.nodes[node_count].branch_length = mtr.tree.nodes[child].branch_length;
 						mtr.tree.nodes[child].branch_length = 0.0;
+						mtr.tree.nodes[i].child_left = NULL;
+						mtr.tree.nodes[i].child_right = NULL;
 						node_count--;
 						//std::cerr << i << " " << (*mtr.tree.nodes[i].child_right).label << std::endl;
 					}
 				}
 				//std::cerr << ntip << " " << node_count << " " << N-1 << std::endl;
 
+				std::vector<int> checkp(2*N-1,0);
+				for(int i = 0; i < 2*N-2; i++){
+					assert(mtr.tree.nodes[i].label == i);
+          checkp[(*mtr.tree.nodes[i].parent).label]++;
+				}
+				for(int i = N; i < 2*N-1; i++){
+          assert(checkp[i] == 2);
+				}
+
+				std::vector<int> checkc(2*N-1,0);
+				for(int i = N; i < 2*N-1; i++){
+					if(mtr.tree.nodes[i].child_left == NULL) std::cerr << i << std::endl;
+					if(mtr.tree.nodes[i].child_right == NULL) std::cerr << i << std::endl;
+					checkc[(*mtr.tree.nodes[i].child_left).label]++;
+					checkc[(*mtr.tree.nodes[i].child_right).label]++;
+				}
+				for(int i = 0; i < 2*N-2; i++){
+					assert(checkc[i] == 1);
+				}
 				assert(node_count == N-1); 
 
 				std::vector<float> coords(2*N-1, 0.0);
