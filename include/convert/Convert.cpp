@@ -89,7 +89,7 @@ ConvertFromTreeSequence(cxxopts::Options& options){
   bool help = false;
   if(!options.count("anc") || !options.count("mut") || !options.count("input")){
     std::cout << "Not enough arguments supplied." << std::endl;
-    std::cout << "Needed: anc, mut, input." << std::endl;
+    std::cout << "Needed: anc, mut, input. Optional: flag" << std::endl;
     help = true;
   }
   if(options.count("help") || help){
@@ -112,10 +112,15 @@ ConvertFromTreeSequence(cxxopts::Options& options){
     seed = options["seed"].as<int>();
   } 
 
+	bool flag = true;
+	if(options.count("ordered_labels")){
+		flag = false;
+	}
+
   ////////// 1. Dump in tree sequence file format ////////
   
   //new set of nodes for each tree (this does not compress trees)
-  ConvertFromTreeSequence(options["anc"].as<std::string>(), options["mut"].as<std::string>(), options["input"].as<std::string>(), no_branch_lengths, seed);
+  ConvertFromTreeSequence(options["anc"].as<std::string>(), options["mut"].as<std::string>(), options["input"].as<std::string>(), no_branch_lengths, flag, seed);
 
   if(1){
   AncesTree anc;
@@ -156,6 +161,7 @@ int main(int argc, char* argv[]){
     ("anc", "Filename of file containing trees.", cxxopts::value<std::string>())
     ("mut", "Filename of file containing mut.", cxxopts::value<std::string>())
     ("no_bl", "If specified, assume that tree sequence has no branch lengths.")
+		("ordered_labels", "If specified, haplotypes are labelled from 1:N, otherwise it will follow individuals.")
     ("seed", "Random seed (int).", cxxopts::value<int>())
     ("i,input", "Filename of input.", cxxopts::value<std::string>())
     ("o,output", "Filename of output (excl file extension).", cxxopts::value<std::string>());

@@ -13,13 +13,13 @@
   --poplabels data/example.poplabels \
   -o output
 
-../bin/Example \
+../bin/Convert \
   --mode ConvertToTreeSequence \
   --anc example.anc.gz \
   --mut example.mut.gz  \
   -o output
 
-../bin/Example \
+../bin/Convert \
   --mode ConvertFromTreeSequence \
   --anc output.anc \
   --mut output.mut  \

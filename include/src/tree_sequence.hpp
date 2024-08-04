@@ -508,8 +508,8 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
 		for(int i = 0; i < mtr.tree.nodes.size()-1; i++){
 			if(!(coordinates[(*mtr.tree.nodes[i].parent).label] - coordinates[i] > 0.0)){
 				int parent = (*mtr.tree.nodes[i].parent).label, child = i;
-				while(coordinates[parent] <= coordinates[child] + std::nextafter(coordinates[child], coordinates[child] + 1)){
-					coordinates[parent] = coordinates[child] + std::nextafter(coordinates[child], coordinates[child] + 1);
+				while(coordinates[parent] <= std::nextafter(coordinates[child], coordinates[child] + 1)){
+					coordinates[parent] = std::nextafter(coordinates[child], coordinates[child] + 1);
 					if(parent == root) break;
 					child  = parent;
 					parent = (*mtr.tree.nodes[parent].parent).label;
@@ -612,6 +612,8 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
 		//Edge table
 		for(it_node = mtr.tree.nodes.begin(); it_node != std::prev(mtr.tree.nodes.end(),1); it_node++){
 			node = (*it_node).label;
+
+			//TODO: add number of mutations for Nate's method
 			metasize = snprintf(NULL, 0,"%d",SNPbegin[node]) + snprintf(NULL, 0,"%d",SNPend[node]) + 1;
 			meta = (char *) realloc(meta, metasize);
 			sprintf(meta, "%d %d", SNPbegin[node], SNPend[node]);
@@ -2197,7 +2199,7 @@ DumpAsTreeSequenceWithPolytomies(const std::string& filename_anc, const std::str
 
 //convert tree sequence to anc/mut
 void
-ConvertFromTreeSequence(const std::string& filename_anc, const std::string& filename_mut, const std::string& filename_input, bool no_bl, const int seed = std::time(0) + getpid()){
+ConvertFromTreeSequence(const std::string& filename_anc, const std::string& filename_mut, const std::string& filename_input, bool no_bl, bool flag, const int seed = std::time(0) + getpid()){
 
 	int ret, iter;
 
@@ -2247,20 +2249,27 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 
 	std::cerr << tsk_treeseq_get_num_individuals(&ts) << " " << N << std::endl;
 	j = 0;
-	for(int i = 0; i < tsk_treeseq_get_num_individuals(&ts); i++){
-		tsk_individual_t *ind;
-		ind = (tsk_individual_t *) malloc(2 * sizeof(*ind));
-		tsk_treeseq_get_individual(&ts, i, ind);
-		//std::cerr << "Node: " << i << std::endl;
-		for(int k = 0; k < ind->nodes_length; k++){
-			if((ind->nodes[k]) < N){
-				node_conversion[j] = (ind->nodes[k]);
-				//std::cerr << node_conversion[j] << " ";
-				j++;
+
+	if(flag){
+		for(int i = 0; i < tsk_treeseq_get_num_individuals(&ts); i++){
+			tsk_individual_t *ind;
+			ind = (tsk_individual_t *) malloc(2 * sizeof(*ind));
+			tsk_treeseq_get_individual(&ts, i, ind);
+			//std::cerr << "Node: " << i << std::endl;
+			for(int k = 0; k < ind->nodes_length; k++){
+				if((ind->nodes[k]) < N){
+					node_conversion[j] = (ind->nodes[k]);
+					//std::cerr << node_conversion[j] << " ";
+					j++;
+				}
 			}
+			//std::cerr << std::endl;
+			//std::cerr << ind->nodes[0] << " " << ind->nodes[1] << std::endl;
 		}
-		//std::cerr << std::endl;
-		//std::cerr << ind->nodes[0] << " " << ind->nodes[1] << std::endl;
+	}else{
+    for(j = 0; j < N; j++){
+      node_conversion[j] = j;
+		}
 	}
 
 	//anc/mut variables
@@ -2632,6 +2641,16 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 					}
 				}
 				//std::cerr << ntip << " " << node_count << " " << N-1 << std::endl;
+
+				if(0){
+				for(int i = 0; i < 2*N-2; i++){
+					parent = (*mtr.tree.nodes[i].parent).label;
+					if(i >= parent){
+            std::cerr << i << " " << parent << std::endl;
+					}
+					assert(i < parent);
+				}
+				}
 
 				std::vector<int> checkp(2*N-1,0);
 				for(int i = 0; i < 2*N-2; i++){
