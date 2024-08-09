@@ -508,10 +508,13 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
 		for(int i = 0; i < mtr.tree.nodes.size()-1; i++){
 			if(!(coordinates[(*mtr.tree.nodes[i].parent).label] - coordinates[i] > 0.0)){
 				int parent = (*mtr.tree.nodes[i].parent).label, child = i;
-				while(coordinates[parent] <= std::nextafter(coordinates[child], coordinates[child] + 1)){
-					coordinates[parent] = std::nextafter(coordinates[child], coordinates[child] + 1);
+				float child_age = coordinates[child];
+				while(coordinates[parent] <= child_age){
+					coordinates[parent] = std::nextafter(child_age, child_age + 1);
+					coordinates[parent] = std::nextafter(coordinates[parent], coordinates[parent] + 1);
 					if(parent == root) break;
 					child  = parent;
+					child_age = coordinates[child];
 					parent = (*mtr.tree.nodes[parent].parent).label;
 				}
 			}
