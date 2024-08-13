@@ -2261,8 +2261,8 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 			//std::cerr << "Node: " << i << std::endl;
 			for(int k = 0; k < ind->nodes_length; k++){
 				if((ind->nodes[k]) < N){
-					node_conversion[j] = (ind->nodes[k]);
-					//std::cerr << node_conversion[j] << " ";
+					node_conversion[(ind->nodes[k])] = j;
+					//std::cerr << node_conversion[(ind -> nodes[k])] << ", ";
 					j++;
 				}
 			}
@@ -2322,7 +2322,14 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 	for(int n = 0; n < N; n++){
 		tsk_tree_get_time(&tree, n, &sample_ages[node_conversion[n]]);
 		if(sample_ages[node_conversion[n]] > 0) any_ancient = true;
+		//tsk_tree_get_time(&tree, n, &sample_ages[n]);
+		//if(sample_ages[n] > 0) any_ancient = true;
 	}
+
+	//for(int n = 0; n < N; n++){
+  //  std::cerr << n << " " << node_conversion[n] << " " << sample_ages[node_conversion[n]] << std::endl;
+	//}
+
 	if(any_ancient){
 		for(int n = 0; n < N; n++){
 			fprintf(fp, "%f ", sample_ages[n]);
@@ -2381,6 +2388,11 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 			stack_top  = 0;
 			stack[stack_top] = root;
 
+			std::vector<float> coords(2*N-1, 0.0);
+      for(int i = 0; i < N; i++){
+        coords[i] = sample_ages[i];
+			}
+
 			//go from root to leaves
 			//start with 2N-2, decrease for each subsequent node
 			//Need an array saying node x in tree sequence is node y in anc/mut
@@ -2415,6 +2427,9 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 					}
 					parent = node_conversion[u];
 					assert(parent != -1);
+
+					tsk_tree_get_time(&tree, u, &t2);
+					coords[parent] = t2;	
 
 					if(0){
 					if(num_children != 2){
@@ -2460,8 +2475,9 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 							} 
 
 							tsk_tree_get_time(&tree, v, &t1);
-							tsk_tree_get_time(&tree, tree.parent[v], &t2);
-							mtr.tree.nodes[node].branch_length = t2 - t1;
+							coords[node]   = t1;
+							assert(coords[parent] >= t1);
+							mtr.tree.nodes[node].branch_length = coords[parent] - t1;
 							mtr.tree.nodes[node].SNP_begin = snp; //first SNP index
 						} 
 					}else if(num_children > 2){
@@ -2475,7 +2491,7 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 							if(tsk_treeseq_is_sample(&ts, v)){
 								if(node_conversion[v] == -1){
 									assert(v < N);
-									node_conversion[v] = v; //TODO
+									node_conversion[v] = v; //TODO	
 									ntip++;
 								}
 							}else{
@@ -2509,17 +2525,18 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 								}
 							}
 							children[i] = node_conversion[v];
+							
+							tsk_tree_get_time(&tree, v, &t1);
+							coords[node_conversion[v]] = t1;
 							i++;
 						}
 
 						//choose two children at random, in children, replace one of them  
 						int childA, childB, ichildA, ichildB, parent_all; //assume randomly chosen
-						parent_all = parent;
-
-						tsk_tree_get_time(&tree, tree.left_child[u], &t1);
-						tsk_tree_get_time(&tree, u, &t2);
+						parent_all = parent;	
 
 						parent = tmp_node_count;
+						coords[parent] = coords[parent_all];
 						tmp_node_count++;
 						node_count--;
 						while(num_children > 2){
@@ -2529,17 +2546,18 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 
 							childA  = children[ichildA];
 							childB  = children[ichildB];
+							coords[parent] = coords[parent_all];
 
 							mtr.tree.nodes[childA].parent    = &mtr.tree.nodes[parent]; 
 							mtr.tree.nodes[childA].label     = childA; 
 							mtr.tree.nodes[parent].child_left  = &mtr.tree.nodes[childA];
-							mtr.tree.nodes[childA].branch_length = 0.0;
+							mtr.tree.nodes[childA].branch_length = coords[parent_all] - coords[childA];
 							mtr.tree.nodes[childA].SNP_begin = snp; //first SNP index
 
 							mtr.tree.nodes[childB].parent    = &mtr.tree.nodes[parent]; 
 							mtr.tree.nodes[childB].label     = childB; 
 							mtr.tree.nodes[parent].child_right  = &mtr.tree.nodes[childB];
-							mtr.tree.nodes[childB].branch_length = 0.0;
+							mtr.tree.nodes[childB].branch_length = coords[parent_all] - coords[childB];
 							mtr.tree.nodes[childB].SNP_begin = snp; //first SNP index
 
 							if(ichildA < ichildB){
@@ -2566,13 +2584,13 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 						mtr.tree.nodes[childA].parent    = &mtr.tree.nodes[parent]; 
 						mtr.tree.nodes[childA].label     = childA; 
 						mtr.tree.nodes[parent].child_left  = &mtr.tree.nodes[childA];
-						mtr.tree.nodes[childA].branch_length = t2 - t1;
+						mtr.tree.nodes[childA].branch_length = coords[parent_all] - coords[childA];
 						mtr.tree.nodes[childA].SNP_begin = snp; //first SNP index
 
 						mtr.tree.nodes[childB].parent    = &mtr.tree.nodes[parent]; 
 						mtr.tree.nodes[childB].label     = childB; 
 						mtr.tree.nodes[parent].child_right  = &mtr.tree.nodes[childB];
-						mtr.tree.nodes[childB].branch_length = t2 - t1;
+						mtr.tree.nodes[childB].branch_length = coords[parent_all] - coords[childB];
 						mtr.tree.nodes[childB].SNP_begin = snp; //first SNP index
 
 					}
@@ -2607,6 +2625,7 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 
 						mtr.tree.nodes[child].parent = &mtr.tree.nodes[node_count];
 
+						coords[node_count] = coords[child];
 						mtr.tree.nodes[node_count].SNP_begin = snp;
 						mtr.tree.nodes[node_count].branch_length = mtr.tree.nodes[child].branch_length;
 						mtr.tree.nodes[child].branch_length = 0.0;
@@ -2634,6 +2653,7 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 
 						mtr.tree.nodes[child].parent = &mtr.tree.nodes[node_count];
 
+						coords[node_count] = coords[child];
 						mtr.tree.nodes[node_count].SNP_begin = snp;
 						mtr.tree.nodes[node_count].branch_length = mtr.tree.nodes[child].branch_length;
 						mtr.tree.nodes[child].branch_length = 0.0;
@@ -2676,9 +2696,10 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 				}
 				assert(node_count == N-1); 
 
-				std::vector<float> coords(2*N-1, 0.0);
+
 				if(no_bl){
 
+					std::fill(coords.begin(), coords.end(), 0.0);
 					int num_lin, parent_num_lin; 
 					assert(coords.size() == 2*N-1);
 					for(int i = N; i < 2*N-1; i++){
