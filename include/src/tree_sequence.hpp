@@ -498,7 +498,7 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
 	char *meta;
 	meta = (char *) malloc(1024);
 	branches = (char *) malloc(1024);
-	std::vector<int> SNPbegin(2*N-1,0.0),SNPend(2*N-1,0.0);
+	std::vector<int> SNPbegin(2*N-1,0.0),SNPend(2*N-1,0.0), numMuts(2*N-1,0.0);
 	while(num_bases_tree_persists >= 0.0){
 
 		it_mut = it_mut_current;
@@ -524,7 +524,7 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
 			assert(coordinates[i] < coordinates[(*mtr.tree.nodes[i].parent).label]);
 		}
 
-		std::vector<int>::iterator it_snpbegin = SNPbegin.begin(), it_snpend = SNPend.begin();
+		std::vector<int>::iterator it_snpbegin = SNPbegin.begin(), it_snpend = SNPend.begin(), it_nummut = numMuts.begin();
 		for(std::vector<Node>::iterator it_node = mtr.tree.nodes.begin(); it_node != mtr.tree.nodes.end(); it_node++){
 			*it_snpbegin = ancmut.mut.info[(*it_node).SNP_begin].pos;
 			if((*it_node).SNP_end < ancmut.mut.info.size()-1){
@@ -532,8 +532,10 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
 			}else{
 				*it_snpend   = ancmut.mut.info[(*it_node).SNP_end].pos;
 			}
+      *it_nummut = (int) (*it_node).num_events;
 			it_snpbegin++;
 			it_snpend++;
+      it_nummut++;
 		}
 
 		snp = mtr.pos;
@@ -617,9 +619,9 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
 			node = (*it_node).label;
 
 			//TODO: add number of mutations for Nate's method
-			metasize = snprintf(NULL, 0,"%d",SNPbegin[node]) + snprintf(NULL, 0,"%d",SNPend[node]) + 1;
+      metasize = snprintf(NULL, 0,"%d",SNPbegin[node]) + snprintf(NULL, 0,"%d",SNPend[node]) + snprintf(NULL, 0,"%d",numMuts[node]) + 2;
 			meta = (char *) realloc(meta, metasize);
-			sprintf(meta, "%d %d", SNPbegin[node], SNPend[node]);
+			sprintf(meta, "%d %d %d", SNPbegin[node], SNPend[node], numMuts[node]);
 
 			if(node >= data.N) node += node_const;
 
