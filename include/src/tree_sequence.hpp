@@ -619,7 +619,7 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
 			node = (*it_node).label;
 
 			//TODO: add number of mutations for Nate's method
-      metasize = snprintf(NULL, 0,"%d",SNPbegin[node]) + snprintf(NULL, 0,"%d",SNPend[node]) + snprintf(NULL, 0,"%d",numMuts[node]) + 2;
+      metasize = snprintf(NULL, 0,"%d %d %d",SNPbegin[node], SNPend[node], numMuts[node]) + 1;
 			meta = (char *) realloc(meta, metasize);
 			sprintf(meta, "%d %d %d", SNPbegin[node], SNPend[node], numMuts[node]);
 
