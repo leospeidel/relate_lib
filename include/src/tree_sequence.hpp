@@ -2487,8 +2487,11 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 
 							tsk_tree_get_time(&tree, v, &t1);
 							coords[node]   = t1;
-							assert(coords[parent] >= t1);
-							mtr.tree.nodes[node].branch_length = coords[parent] - t1;
+              if(coords[parent] < coords[node]){
+                coords[parent] = std::nextafter(coords[node], coords[node] + 1); 
+              }
+							assert(coords[parent] >= coords[node]);
+              mtr.tree.nodes[node].branch_length = coords[parent] - coords[node];
 							mtr.tree.nodes[node].SNP_begin = snp; //first SNP index
 						} 
 					}else if(num_children > 2){
