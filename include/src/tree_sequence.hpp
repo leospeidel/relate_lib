@@ -2255,12 +2255,21 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 	std::cerr << tsk_treeseq_get_num_individuals(&ts) << " " << N << std::endl;
 	j = 0;
 
-	if(flag){
+	int count = 0;
+	for(int i = 0; i < tsk_treeseq_get_num_individuals(&ts); i++){
+		tsk_individual_t *ind;
+		ind = (tsk_individual_t *) malloc(2 * sizeof(*ind));
+		tsk_treeseq_get_individual(&ts, i, ind);
+		for(int k = 0; k < ind->nodes_length; k++){
+			count++;	
+		}
+	}
+	if(flag && count == N){
+		std::cerr << "Ordering haplotypes by individual" << std::endl;
 		for(int i = 0; i < tsk_treeseq_get_num_individuals(&ts); i++){
 			tsk_individual_t *ind;
 			ind = (tsk_individual_t *) malloc(2 * sizeof(*ind));
 			tsk_treeseq_get_individual(&ts, i, ind);
-			//std::cerr << "Node: " << i << std::endl;
 			for(int k = 0; k < ind->nodes_length; k++){
 				if((ind->nodes[k]) < N){
 					node_conversion[(ind->nodes[k])] = j;
@@ -2762,7 +2771,7 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 				}
 
 				mtr.Dump(fp);
-				tree_count++; 
+				tree_count++;
 			}
 
 		}
