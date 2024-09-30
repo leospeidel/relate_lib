@@ -1395,6 +1395,110 @@ AncesTree::BranchAssociation(const Tree& ref_tree, const Tree& tree, std::vector
 
 }
 
+void
+AncesTree::NodeAssociation(const Tree& ref_tree, const Tree& tree, std::vector<int>& equivalent_branches, std::vector<std::vector<int>>& potential_branches, int N, int N_total, float threshold_brancheq){
+
+	////
+	equivalent_branches.resize(N_total);
+	std::fill(equivalent_branches.begin(), equivalent_branches.end(), -1);
+	std::vector<int> equivalent_branches_ref(N_total, -1);
+
+	Correlation cor(N);
+
+	//1. calculate leaves
+	std::vector<Leaves> tr_leaves;
+	std::vector<Leaves> rtr_leaves;
+
+	tree.FindAllLeaves(tr_leaves);
+	ref_tree.FindAllLeaves(rtr_leaves);
+
+	//2. Sort nodes according to number of leaves and store in std::vector of size(N_total)
+
+	std::vector<int> sorted_branches(N_total);
+	std::size_t n(0);
+	std::generate(std::begin(sorted_branches), std::end(sorted_branches), [&]{ return n++; });
+	std::sort(std::begin(sorted_branches), std::end(sorted_branches), [&](int i1, int i2) { return rtr_leaves[i1].num_leaves < rtr_leaves[i2].num_leaves; } );
+
+	std::vector<int> index_sorted_branches(N,0); //this vector is for accessing sorted_branches
+	for(std::vector<Leaves>::iterator it = rtr_leaves.begin(); it != std::prev(rtr_leaves.end(),1); it++){
+		index_sorted_branches[(*it).num_leaves]++;
+	}
+	int cum = 0;
+	for(std::vector<int>::iterator it = index_sorted_branches.begin(); it != index_sorted_branches.end(); it++){
+		*it += cum;
+		cum = *it;
+	}
+
+	//3. For each branch, search for exact equivalent branch in ref_tree
+	//   record which branches are unpaired
+
+	std::vector<int> unpaired_branches;
+
+	//ignore leaves
+	for(int i = N; i < N_total-1; i++){ 
+
+		if(cor.Pearson(tr_leaves[i], rtr_leaves[i]) >= 0.9999){     
+			//branches i and i are equivalent
+			equivalent_branches[i] = i;
+			equivalent_branches_ref[i] = i;
+		}
+
+		if(equivalent_branches[i] == -1){
+			int num_leaves = tr_leaves[i].num_leaves;
+			for(std::vector<int>::iterator it = std::next(sorted_branches.begin(),index_sorted_branches[num_leaves-1]); it != std::next(sorted_branches.begin(), index_sorted_branches[num_leaves]); it++ ){
+				if(cor.Pearson(tr_leaves[i], rtr_leaves[*it]) >= 0.9999){     
+					//branches i and *it are equivalent
+					equivalent_branches[i]       = *it;
+					equivalent_branches_ref[*it] = i;
+
+					break;  
+				}
+			}
+		}
+
+		if(equivalent_branches[i] == -1){
+			unpaired_branches.push_back(i);
+		}
+
+	}
+
+	//4. For the nodes that are not paired up, find all possible pairs above threshold 
+	std::vector<EquivalentNode> possible_pairs;
+
+	for(std::vector<int>::iterator it_unpaired = unpaired_branches.begin(); it_unpaired != unpaired_branches.end(); it_unpaired++){
+
+		int num_leaves = tr_leaves[*it_unpaired].num_leaves - 1;
+		for(std::vector<int>::iterator it_k = potential_branches[num_leaves].begin(); it_k != potential_branches[num_leaves].end(); it_k++){
+
+			for(std::vector<int>::iterator it = std::next(sorted_branches.begin(),index_sorted_branches[*it_k-1]); it != std::next(sorted_branches.begin(), index_sorted_branches[*it_k]); it++ ){
+				if(equivalent_branches_ref[*it] == -1){
+					float score = cor.Pearson(tr_leaves[*it_unpaired], rtr_leaves[*it]);
+					if(score >= threshold_brancheq){     
+						//branches i and *it are equivalent
+						possible_pairs.push_back(EquivalentNode(*it_unpaired, *it, score));
+					}
+				}
+			}
+
+		}
+
+	}
+
+
+	//5. Sort possible_pairs by score
+	std::sort(std::begin(possible_pairs), std::end(possible_pairs), std::greater<EquivalentNode>());
+
+	//6. Pair up approximate matches
+	for(std::vector<EquivalentNode>::iterator it = possible_pairs.begin(); it != possible_pairs.end(); it++){
+		if(equivalent_branches[(*it).node1] == -1 && equivalent_branches_ref[(*it).node2] == -1){
+			equivalent_branches[(*it).node1]     = (*it).node2;
+			equivalent_branches_ref[(*it).node2] = (*it).node1;
+		}
+	}
+
+}
+
+
 //Carry over information across equivalent branches
 void
 AncesTree::AssociateEquivalentBranches(){
