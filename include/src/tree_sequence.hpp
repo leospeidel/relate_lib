@@ -931,9 +931,9 @@ DumpAsTreeSequenceXkb(const std::string& filename_anc, const std::string& filena
 			for(it_node = mtr.tree.nodes.begin(); it_node != std::prev(mtr.tree.nodes.end(),1); it_node++){
 				node = (*it_node).label;
 
-				metasize = snprintf(NULL, 0,"%d",SNPbegin[node]) + snprintf(NULL, 0,"%d",SNPend[node]) + snprintf(NULL, 0,"%d",numMuts[node]) + 2;
-				meta = (char *) realloc(meta, metasize);
-				sprintf(meta, "%d %d %d", SNPbegin[node], SNPend[node], numMuts[node]);
+        metasize = snprintf(NULL, 0,"%d %d %d",SNPbegin[node], SNPend[node], numMuts[node]) + 1;
+        meta = (char *) realloc(meta, metasize);
+        sprintf(meta, "%d %d %d", SNPbegin[node], SNPend[node], numMuts[node]);
 
 				if(node >= data.N) node += node_const;
 
