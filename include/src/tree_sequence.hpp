@@ -913,7 +913,7 @@ DumpAsTreeSequenceXkb(const std::string& filename_anc, const std::string& filena
 		//only output if overlapping xkb
     if(pos <= current_window && pos_end > current_window){
 	
-			std::cerr << pos << " " << pos_end << " " << current_window << " " << window_size << std::endl;
+			//std::cerr << pos << " " << pos_end << " " << current_window << " " << window_size << std::endl;
 			while(current_window < pos_end) current_window += window_size;
 
 			//Node table
