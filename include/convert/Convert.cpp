@@ -33,6 +33,11 @@ ConvertToTreeSequence(cxxopts::Options& options){
   if(options.count("compress")){
     compress = true;
   }
+	int fb;
+	if(options.count("fb")){
+		fb = options["fb"].as<int>();
+		assert(fb > 0);
+	}
   if(options.count("quiet")){
     verbose = false;
   }
@@ -58,7 +63,11 @@ ConvertToTreeSequence(cxxopts::Options& options){
       options["iterations"].as<int>(), 
       verbose
     );
-  } else {
+  } else if(options.count("fb")) {
+
+		DumpAsTreeSequenceXkb(options["anc"].as<std::string>(), options["mut"].as<std::string>(), fb, outfile);
+
+	} else {
     //new set of nodes for each tree (this does not compress trees)
     DumpAsTreeSequence(options["anc"].as<std::string>(), options["mut"].as<std::string>(), outfile);
   }
@@ -162,6 +171,7 @@ int main(int argc, char* argv[]){
     ("mut", "Filename of file containing mut.", cxxopts::value<std::string>())
     ("no_bl", "If specified, assume that tree sequence has no branch lengths.")
 		("ordered_labels", "If specified, haplotypes are labelled from 1:N, otherwise it will follow individuals.")
+		("fb", "If specified, trees are only output at these intervals.", cxxopts::value<int>())
     ("seed", "Random seed (int).", cxxopts::value<int>())
     ("i,input", "Filename of input.", cxxopts::value<std::string>())
     ("o,output", "Filename of output (excl file extension).", cxxopts::value<std::string>());
