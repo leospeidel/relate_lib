@@ -865,8 +865,8 @@ DumpAsTreeSequenceXkb(const std::string& filename_anc, const std::string& filena
     (*it_seq).tree.sample_ages = &anc.sample_ages;
 	}
 
-	//anc.AssociateEquivalentBranches(threshold_brancheq); 
-	anc.AssociateEquivalentNodes(threshold_brancheq); 
+	anc.AssociateEquivalentBranches(threshold_brancheq); 
+	//anc.AssociateEquivalentNodes(threshold_brancheq); 
 	assert(tree_pos_begin.size() == anc.seq.size());
 
 	///////////////////////////////////////////////////////////////////////////// 
