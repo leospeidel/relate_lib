@@ -1501,7 +1501,7 @@ AncesTree::NodeAssociation(const Tree& ref_tree, const Tree& tree, std::vector<i
 
 //Carry over information across equivalent branches
 void
-AncesTree::AssociateEquivalentBranches(){
+AncesTree::AssociateEquivalentBranches(float threshold_brancheq){
 
 	CorrTrees::iterator it_seq_prev;
 	CorrTrees::iterator it_seq; 
@@ -1511,7 +1511,6 @@ AncesTree::AssociateEquivalentBranches(){
 
 	//Associate branches
 	//Pre calculate how many descendants a branch needs to be equivalent
-	float threshold_brancheq = 0.95;
 	//float threshold_brancheq = 1.0;
 	std::vector<std::vector<int>> potential_branches;
 	//the number of leaves a branch needs to be equivalent
@@ -1586,6 +1585,106 @@ AncesTree::AssociateEquivalentBranches(){
 		for(std::vector<int>::iterator it = (*rit_equivalent_branches).begin(); it != (*rit_equivalent_branches).end(); it++){
 			if(*it != -1){
 				(*rit_seq).tree.nodes[*it].num_events = (*it_nodes).num_events;
+				(*rit_seq).tree.nodes[*it].SNP_end    = (*it_nodes).SNP_end;
+			}
+			it_nodes++;
+		}
+		rit_equivalent_branches++;
+
+		rit_seq++;
+		rit_seq_next++;
+	}
+
+	assert(rit_equivalent_branches == equivalent_branches.rend());
+
+}
+
+//Carry over information across equivalent nodes
+void
+AncesTree::AssociateEquivalentNodes(float threshold_brancheq){
+
+	CorrTrees::iterator it_seq_prev;
+	CorrTrees::iterator it_seq; 
+
+	int N_total = (*seq.begin()).tree.nodes.size();
+	int N       = (N_total+1.0)/2.0;
+
+	//Associate branches
+	//Pre calculate how many descendants a branch needs to be equivalent
+	//float threshold_brancheq = 1.0;
+	std::vector<std::vector<int>> potential_branches;
+	//the number of leaves a branch needs to be equivalent
+	potential_branches.resize(N);
+	float threshold_inv = 1/(threshold_brancheq * threshold_brancheq);
+	float N_float = N;
+	for(int i = 1; i <= N; i++){
+		potential_branches[i-1].push_back(i);
+		//for branches with i+1 leaves, list the number of leaves a potential equivalent branch needs
+		for(int j = i+1; j <= N; j++){
+			if(threshold_inv >= j/(N_float-j) * ((N_float-i)/i) ){
+				potential_branches[i-1].push_back(j);
+				potential_branches[j-1].push_back(i);
+			}
+		}
+	}
+
+	/////
+	// Find equivalent branches
+
+	it_seq_prev = seq.begin();
+	it_seq      = std::next(it_seq_prev,1); 
+
+	std::vector<std::vector<int>> equivalent_branches;
+	std::vector<std::vector<int>>::iterator it_equivalent_branches;
+	std::vector<std::vector<int>>::reverse_iterator rit_equivalent_branches;
+
+	for(; it_seq != seq.end();){
+		equivalent_branches.emplace_back();
+		it_equivalent_branches = std::prev(equivalent_branches.end(),1);
+		NodeAssociation((*it_seq_prev).tree, (*it_seq).tree, *it_equivalent_branches, potential_branches, N, N_total, threshold_brancheq); //O(N^2) 
+		it_seq++;
+		it_seq_prev++;
+	}  
+
+	///////////////////////////////////////////
+	//Now carry over information on branches, starting from the first tree.
+
+	it_equivalent_branches = equivalent_branches.begin();
+	std::vector<Node>::iterator it_nodes;
+
+	it_seq_prev = seq.begin();
+	it_seq      = std::next(it_seq_prev,1); 
+
+	for(; it_seq != seq.end();){
+		it_nodes = (*it_seq).tree.nodes.begin();
+		for(std::vector<int>::iterator it = (*it_equivalent_branches).begin(); it != (*it_equivalent_branches).end(); it++){
+			if(*it != -1){
+				//(*it_nodes).num_events += (*it_seq_prev).tree.nodes[*it].num_events;
+				(*it_nodes).SNP_begin   = (*it_seq_prev).tree.nodes[*it].SNP_begin;
+			}
+			it_nodes++;
+		}
+		it_equivalent_branches++;
+
+		it_seq++;
+		it_seq_prev++;
+	}
+	assert(it_equivalent_branches == equivalent_branches.end());
+
+	///////////////////////////////////////////
+	//Now go from the last tree to the first
+
+	rit_equivalent_branches = equivalent_branches.rbegin();
+
+	CorrTrees::reverse_iterator rit_seq_next;
+	CorrTrees::reverse_iterator rit_seq; 
+	rit_seq_next = seq.rbegin();
+	rit_seq      = std::next(rit_seq_next,1); 
+	for(; rit_seq != seq.rend();){
+		it_nodes = (*rit_seq_next).tree.nodes.begin();
+		for(std::vector<int>::iterator it = (*rit_equivalent_branches).begin(); it != (*rit_equivalent_branches).end(); it++){
+			if(*it != -1){
+				//(*rit_seq).tree.nodes[*it].num_events = (*it_nodes).num_events;
 				(*rit_seq).tree.nodes[*it].SNP_end    = (*it_nodes).SNP_end;
 			}
 			it_nodes++;

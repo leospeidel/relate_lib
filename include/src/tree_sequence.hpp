@@ -532,10 +532,10 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
 			}else{
 				*it_snpend   = ancmut.mut.info[(*it_node).SNP_end].pos;
 			}
-      *it_nummut = (int) (*it_node).num_events;
+			*it_nummut = (int) (*it_node).num_events;
 			it_snpbegin++;
 			it_snpend++;
-      it_nummut++;
+			it_nummut++;
 		}
 
 		snp = mtr.pos;
@@ -619,7 +619,7 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
 			node = (*it_node).label;
 
 			//TODO: add number of mutations for Nate's method
-      metasize = snprintf(NULL, 0,"%d %d %d",SNPbegin[node], SNPend[node], numMuts[node]) + 1;
+			metasize = snprintf(NULL, 0,"%d %d %d",SNPbegin[node], SNPend[node], numMuts[node]) + 1;
 			meta = (char *) realloc(meta, metasize);
 			sprintf(meta, "%d %d %d", SNPbegin[node], SNPend[node], numMuts[node]);
 
@@ -691,15 +691,15 @@ DumpAsTreeSequence(const std::string& filename_anc, const std::string& filename_
 }
 
 void
-DumpAsTreeSequenceXkb(const std::string& filename_anc, const std::string& filename_mut, int fb, const std::string& filename_output){
+DumpAsTreeSequenceXkb(const std::string& filename_anc, const std::string& filename_mut, int fb, std::string& region, const std::string& filename_output, float threshold_brancheq = 0.95){
 
 	////////////////////////
 	//read in anc file
 
 	AncesTree anc;
-	MarginalTree mtr, next_mtr; //stores marginal trees. mtr.pos is SNP position at which tree starts, mtr.tree stores the tree
-	Muts::iterator it_mut, it_mut_current, it_mut_next, it_mut_tmp; //iterator for mut file
-	float num_bases_tree_persists = 0.0, num_bases_next_tree_persists = 0.0;
+	MarginalTree mtr; //stores marginal trees. mtr.pos is SNP position at which tree starts, mtr.tree stores the tree
+	Muts::iterator it_mut, it_mut_tmp, it_mut_current; //iterator for mut file
+	float num_bases_tree_persists = 0.0;
 
 	////////// 1. Read one tree at a time /////////
 
@@ -708,7 +708,6 @@ DumpAsTreeSequenceXkb(const std::string& filename_anc, const std::string& filena
 	AncMutIterators ancmut(filename_anc, filename_mut);
 
 	num_bases_tree_persists = ancmut.NextTree(mtr, it_mut);
-	it_mut_current = it_mut;
 	int N = (mtr.tree.nodes.size() + 1)/2.0, root = 2*N - 2, L = ancmut.NumSnps();
 	int N_total = 2*N-1;
 	Data data(N,L);
@@ -717,22 +716,26 @@ DumpAsTreeSequenceXkb(const std::string& filename_anc, const std::string& filena
 	Mutations mut;
 	mut.Read(filename_mut);
 
-	//........................................................................
-	//Populate ts tables
+	anc.sample_ages = ancmut.sample_ages;
+	anc.N = N;
+
+	//////////////////////////////////////////////////////////////////////////
+	//Populate tskit tables
 
 	int ret;
 	tsk_table_collection_t tables;
 	ret = tsk_table_collection_init(&tables, 0);
 	check_tsk_error(ret);
 
+	//////
+	//Inivisuals table
 	tables.sequence_length = (*std::prev(ancmut.mut_end(),1)).pos + 1;
 	for(int i = 0; i < N; i++){
 		tsk_individual_table_add_row(&tables.individuals, 0, NULL, 0, NULL, 0 , NULL, 0);
 	}
 
-	//population table
-
-	//sites table
+	//////
+	//Sites table
 	char ancestral_allele[1];
 	double pos, pos_begin, pos_end;
 	std::vector<double> bps(L);
@@ -782,103 +785,30 @@ DumpAsTreeSequenceXkb(const std::string& filename_anc, const std::string& filena
 
 		}
 
-		//std::cerr << (*it_mut).pos << " " << count << " " << bps_index-1 << " " << bps[bps_index-1] << std::endl;
 		check_tsk_error(ret);
 	}
 	assert(bps_index == L);
 
-	if(ancmut.sample_ages.size() > 0){
-		for(int i = 0; i < data.N; i++){
-			ret = tsk_node_table_add_row(&tables.nodes, TSK_NODE_IS_SAMPLE, ancmut.sample_ages[i], TSK_NULL, i, NULL, 0);
-			check_tsk_error(ret);
-		}
-	}else{
-		for(int i = 0; i < data.N; i++){
-			ret = tsk_node_table_add_row(&tables.nodes, TSK_NODE_IS_SAMPLE, 0, TSK_NULL, i, NULL, 0);
-			check_tsk_error(ret);
-		}
-	}
-
 	///////////////////////////////////////////////////////////////////////////// 
+	//subset trees
 
-	int snp, snp_end, tree_count = 0, node_rel, node, node_const, site_count = 0, count = 0;
-	int node_count = data.N, edge_count = 0;
+	int snp, snp_end;
+	std::vector<double> tree_pos_begin, tree_pos_end;
 
-	std::vector<int> equivalent_branches_prev(N_total), equivalent_branches_next(N_total);
-	float threshold_brancheq = 0.95;
-	//float threshold_brancheq = 1.0;
-	std::vector<std::vector<int>> potential_branches;
-	//the number of leaves a branch needs to be equivalent
-	potential_branches.resize(N);
-	float threshold_inv = 1/(threshold_brancheq * threshold_brancheq);
-	float N_float = N;
-	for(int i = 1; i <= N; i++){
-		potential_branches[i-1].push_back(i);
-		//for branches with i+1 leaves, list the number of leaves a potential equivalent branch needs
-		for(int j = i+1; j <= N; j++){
-			if(threshold_inv >= j/(N_float-j) * ((N_float-i)/i) ){
-				potential_branches[i-1].push_back(j);
-				potential_branches[j-1].push_back(i);
-			}
+	int current_window = 0;
+	std::vector<int> region_bps;
+	igzstream is_region(region);
+	int ipos;
+	if(!is_region.fail() && region != ""){
+		while(is_region >> pos){
+			region_bps.push_back(pos);
 		}
+		fb = -1;
 	}
 
-	num_bases_next_tree_persists = ancmut.NextTree(next_mtr, it_mut);
-	it_mut_next = it_mut;
-
-	////////////
-
-	char derived_allele[1];
-	char *branches;
-	int prev_branch, next_branch;
-
-	int metasize, size;
-	char *meta;
-	meta = (char *) malloc(1024);
-	branches = (char *) malloc(1024);
-	std::vector<int> SNPbegin(2*N-1,0.0),SNPend(2*N-1,0.0), numMuts(2*N-1,0.0);
-	int current_window = 0;
-	int window_size    = fb;
-	
+	int count = 0;
+	it_mut = ancmut.mut_begin();
 	while(num_bases_tree_persists >= 0.0){
-
-		it_mut = it_mut_current;
-    //if(num_bases_next_tree_persists >= 0.0) anc.BranchAssociation(next_mtr.tree, mtr.tree, equivalent_branches_next, potential_branches, N, N_total, threshold_brancheq);
-		if(num_bases_next_tree_persists >= 0.0) anc.NodeAssociation(next_mtr.tree, mtr.tree, equivalent_branches_next, potential_branches, N, N_total, threshold_brancheq);
-
-		mtr.tree.GetCoordinates(coordinates);
-		for(int i = 0; i < mtr.tree.nodes.size()-1; i++){
-			if(!(coordinates[(*mtr.tree.nodes[i].parent).label] - coordinates[i] > 0.0)){
-				int parent = (*mtr.tree.nodes[i].parent).label, child = i;
-				float child_age = coordinates[child];
-				while(coordinates[parent] <= child_age){
-					coordinates[parent] = std::nextafter(child_age, child_age + 1);
-					coordinates[parent] = std::nextafter(coordinates[parent], coordinates[parent] + 1);
-					if(parent == root) break;
-					child  = parent;
-					child_age = coordinates[child];
-					parent = (*mtr.tree.nodes[parent].parent).label;
-				}
-			}
-		}
-
-		for(int i = 0; i < mtr.tree.nodes.size()-1; i++){  
-			assert(coordinates[i] < coordinates[(*mtr.tree.nodes[i].parent).label]);
-		}
-
-		std::vector<int>::iterator it_snpbegin = SNPbegin.begin(), it_snpend = SNPend.begin(), it_nummut = numMuts.begin();
-		for(std::vector<Node>::iterator it_node = mtr.tree.nodes.begin(); it_node != mtr.tree.nodes.end(); it_node++){
-			*it_snpbegin = ancmut.mut.info[(*it_node).SNP_begin].pos;
-			if((*it_node).SNP_end < ancmut.mut.info.size()-1){
-				*it_snpend   = ancmut.mut.info[(*it_node).SNP_end+1].pos;
-			}else{
-				*it_snpend   = ancmut.mut.info[(*it_node).SNP_end].pos;
-			}
-			*it_nummut = (int) (*it_node).num_events;
-			it_snpbegin++;
-			it_snpend++;
-			it_nummut++;
-		}
 
 		snp = mtr.pos;
 		if(snp == 0){
@@ -888,9 +818,7 @@ DumpAsTreeSequenceXkb(const std::string& filename_anc, const std::string& filena
 		}
 
 		int tree_count = (*it_mut).tree;
-		node_const = count * (data.N - 1);
 
-		//Mutation table
 		int l = snp;
 		while((*it_mut).tree == tree_count){
 			l++;
@@ -909,73 +837,139 @@ DumpAsTreeSequenceXkb(const std::string& filename_anc, const std::string& filena
 		assert(pos <= bps[snp]);
 		assert(pos_end >= bps[snp]);
 
-		while(current_window < pos) current_window += window_size;
+		if(fb > 0){
+			while(current_window < pos) current_window += fb;
+		}else{
+			if(ipos < region_bps.size()){
+				while(current_window < pos){
+					current_window = region_bps[ipos];
+					ipos++;
+					if(ipos == region_bps.size()) break;
+				}
+			}
+		}
 
 		//only output if overlapping xkb
-    if(pos <= current_window && pos_end > current_window){
-	
-			//std::cerr << pos << " " << pos_end << " " << current_window << " " << window_size << std::endl;
-			while(current_window < pos_end) current_window += window_size;
-
-			//Node table
-			int n = N;
-			for(std::vector<float>::iterator it_coords = std::next(coordinates.begin(), data.N); it_coords != coordinates.end(); it_coords++){   
-				ret = tsk_node_table_add_row(&tables.nodes, 0, *it_coords, TSK_NULL, TSK_NULL, NULL, 0);   
-				check_tsk_error(ret);
-				n++;
-				node_count++;
-			}
-
-			std::vector<Node>::iterator it_node = std::next(mtr.tree.nodes.begin(), data.N);
-			//Edge table
-			for(it_node = mtr.tree.nodes.begin(); it_node != std::prev(mtr.tree.nodes.end(),1); it_node++){
-				node = (*it_node).label;
-
-        metasize = snprintf(NULL, 0,"%d %d %d",SNPbegin[node], SNPend[node], numMuts[node]) + 1;
-        meta = (char *) realloc(meta, metasize);
-        sprintf(meta, "%d %d %d", SNPbegin[node], SNPend[node], numMuts[node]);
-
-				if(node >= data.N) node += node_const;
-
-				//ret = tsk_edge_table_add_row(&tables.edges, pos, pos_end, (*(*it_node).parent).label + node_const, node, branches, size);    
-				ret = tsk_edge_table_add_row(&tables.edges, pos, pos_end, (*(*it_node).parent).label + node_const, node, meta, metasize);    
-				check_tsk_error(ret);
-				edge_count++;
-			}
+		if(pos <= current_window && pos_end > current_window){
+			tree_pos_begin.push_back(pos);
+			tree_pos_end.push_back(pos_end);
+			//tree_pos_begin.push_back(current_window);
+			//tree_pos_end.push_back(current_window+1);
+			anc.seq.push_back(mtr);
 			count++;
-
 		}
 
-		//invert this vector
-		std::fill(equivalent_branches_prev.begin(), equivalent_branches_prev.end(), -1);
-		for(int i = 0; i < N_total; i++){
-			if(equivalent_branches_next[i] != -1){
-				equivalent_branches_prev[equivalent_branches_next[i]] = i;
+		num_bases_tree_persists  = ancmut.NextTree(mtr, it_mut);
+	} 
+	for(CorrTrees::iterator it_seq = anc.seq.begin(); it_seq != anc.seq.end(); it_seq++){
+    (*it_seq).tree.sample_ages = &anc.sample_ages;
+	}
+
+	//anc.AssociateEquivalentBranches(threshold_brancheq); 
+	anc.AssociateEquivalentNodes(threshold_brancheq); 
+	assert(tree_pos_begin.size() == anc.seq.size());
+
+	///////////////////////////////////////////////////////////////////////////// 
+	//Node and edge tables
+
+	if(ancmut.sample_ages.size() > 0){
+		for(int i = 0; i < data.N; i++){
+			ret = tsk_node_table_add_row(&tables.nodes, TSK_NODE_IS_SAMPLE, anc.sample_ages[i], TSK_NULL, i, NULL, 0);
+			check_tsk_error(ret);
+		}
+	}else{
+		for(int i = 0; i < data.N; i++){
+			ret = tsk_node_table_add_row(&tables.nodes, TSK_NODE_IS_SAMPLE, 0, TSK_NULL, i, NULL, 0);
+			check_tsk_error(ret);
+		}
+	}
+
+	int node_count = data.N, edge_count = 0, node_const, node;
+
+	////////////
+	int metasize, size;
+	char *meta;
+	meta = (char *) malloc(1024);
+	std::vector<int> SNPbegin(2*N-1,0.0),SNPend(2*N-1,0.0), numMuts(2*N-1,0.0);
+
+	count = 0;
+	for(CorrTrees::iterator it_seq = anc.seq.begin(); it_seq != anc.seq.end(); it_seq++){
+
+		(*it_seq).tree.GetCoordinates(coordinates);
+		for(int i = 0; i < (*it_seq).tree.nodes.size()-1; i++){
+			if(!(coordinates[(*(*it_seq).tree.nodes[i].parent).label] - coordinates[i] > 0.0)){
+				int parent = (*(*it_seq).tree.nodes[i].parent).label, child = i;
+				float child_age = coordinates[child];
+				while(coordinates[parent] <= child_age){
+					coordinates[parent] = std::nextafter(child_age, child_age + 1);
+					coordinates[parent] = std::nextafter(coordinates[parent], coordinates[parent] + 1);
+					if(parent == root) break;
+					child  = parent;
+					child_age = coordinates[child];
+					parent = (*(*it_seq).tree.nodes[parent].parent).label;
+				}
 			}
 		}
 
-		mtr = next_mtr;
-		it_mut_current = it_mut_next;
-		num_bases_tree_persists  = num_bases_next_tree_persists;
-		if(num_bases_tree_persists >= 0){
-			num_bases_next_tree_persists  = ancmut.NextTree(next_mtr, it_mut);
-			it_mut_next = it_mut;
+		snp = (*it_seq).pos;
+		assert(tree_pos_begin[count] != tree_pos_end[count]);
+		assert(tree_pos_begin[count] <= bps[snp]);
+		assert(tree_pos_end[count] >= bps[snp]);
+
+		for(int i = 0; i < (*it_seq).tree.nodes.size()-1; i++){  
+			assert(coordinates[i] < coordinates[(*(*it_seq).tree.nodes[i].parent).label]);
 		}
 
-		
+		std::vector<int>::iterator it_snpbegin = SNPbegin.begin(), it_snpend = SNPend.begin(), it_nummut = numMuts.begin();
+		for(std::vector<Node>::iterator it_node = (*it_seq).tree.nodes.begin(); it_node != (*it_seq).tree.nodes.end(); it_node++){
+			*it_snpbegin = ancmut.mut.info[(*it_node).SNP_begin].pos;
+			if((*it_node).SNP_end < ancmut.mut.info.size()-1){
+				*it_snpend   = ancmut.mut.info[(*it_node).SNP_end+1].pos;
+			}else{
+				*it_snpend   = ancmut.mut.info[(*it_node).SNP_end].pos;
+			}
+			*it_nummut = (int) (*it_node).num_events;
+			//if((*it_node).label == 100) std::cout << *it_snpbegin << " " << *it_snpend << " " << *it_nummut << std::endl;
+			it_snpbegin++;
+			it_snpend++;
+			it_nummut++;
+		}
+
+		//Node table
+		for(std::vector<float>::iterator it_coords = std::next(coordinates.begin(), data.N); it_coords != coordinates.end(); it_coords++){   
+			ret = tsk_node_table_add_row(&tables.nodes, 0, *it_coords, TSK_NULL, TSK_NULL, NULL, 0);   
+			check_tsk_error(ret);
+			node_count++;
+		}
+
+		node_const = count * (data.N - 1);
+		//Edge table
+		for(std::vector<Node>::iterator it_node = (*it_seq).tree.nodes.begin(); it_node != std::prev((*it_seq).tree.nodes.end(),1); it_node++){
+			node = (*it_node).label;
+
+			metasize = snprintf(NULL, 0,"%d %d %d",SNPbegin[node], SNPend[node], numMuts[node]) + 1;
+			meta = (char *) realloc(meta, metasize);
+			sprintf(meta, "%d %d %d", SNPbegin[node], SNPend[node], numMuts[node]);
+
+			if(node >= data.N) node += node_const;
+
+			ret = tsk_edge_table_add_row(&tables.edges, tree_pos_begin[count], tree_pos_end[count], (*(*it_node).parent).label + node_const, node, meta, metasize);    
+			check_tsk_error(ret);
+			edge_count++;
+		}
+		count++;
 
 	} 
 	//need to convert final tree
+
+	std::cerr << "Node count; edge count; tree count" << std::endl;
+	std::cerr << node_count << " " << edge_count << " " << count << std::endl;
 
 
 	ret = tsk_table_collection_sort(&tables, NULL, 0);
 	check_tsk_error(ret);
 	ret = tsk_table_collection_build_index(&tables, 0);
 	check_tsk_error(ret);
-
-	std::cerr << "Node count; edge count; tree count" << std::endl;
-	std::cerr << node_count << " " << edge_count << " " << count << std::endl;
-
 
 	//////////////////////////
 
@@ -2578,8 +2572,8 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 			//std::cerr << ind->nodes[0] << " " << ind->nodes[1] << std::endl;
 		}
 	}else{
-    for(j = 0; j < N; j++){
-      node_conversion[j] = j;
+		for(j = 0; j < N; j++){
+			node_conversion[j] = j;
 		}
 	}
 
@@ -2635,7 +2629,7 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 	}
 
 	//for(int n = 0; n < N; n++){
-  //  std::cerr << n << " " << node_conversion[n] << " " << sample_ages[node_conversion[n]] << std::endl;
+	//  std::cerr << n << " " << node_conversion[n] << " " << sample_ages[node_conversion[n]] << std::endl;
 	//}
 
 	if(any_ancient){
@@ -2697,8 +2691,8 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 			stack[stack_top] = root;
 
 			std::vector<float> coords(2*N-1, 0.0);
-      for(int i = 0; i < N; i++){
-        coords[i] = sample_ages[i];
+			for(int i = 0; i < N; i++){
+				coords[i] = sample_ages[i];
 			}
 
 			//go from root to leaves
@@ -2740,14 +2734,14 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 					coords[parent] = t2;	
 
 					if(0){
-					if(num_children != 2){
-						std::cerr << "nchildren: " << num_children << std::endl;
-						for(v = tree.left_child[u]; v != TSK_NULL; v = tree.right_sib[v]){
-							if(num_children == 1){
-								std::cerr << u << " " << v << " " << "is_sample: " << tsk_treeseq_is_sample(&ts, v) << std::endl;
+						if(num_children != 2){
+							std::cerr << "nchildren: " << num_children << std::endl;
+							for(v = tree.left_child[u]; v != TSK_NULL; v = tree.right_sib[v]){
+								if(num_children == 1){
+									std::cerr << u << " " << v << " " << "is_sample: " << tsk_treeseq_is_sample(&ts, v) << std::endl;
+								}
 							}
 						}
-					}
 					}
 
 					if(num_children <= 2){
@@ -2784,11 +2778,11 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 
 							tsk_tree_get_time(&tree, v, &t1);
 							coords[node]   = t1;
-              if(coords[parent] < coords[node]){
-                coords[parent] = std::nextafter(coords[node], coords[node] + 1); 
-              }
+							if(coords[parent] < coords[node]){
+								coords[parent] = std::nextafter(coords[node], coords[node] + 1); 
+							}
 							assert(coords[parent] >= coords[node]);
-              mtr.tree.nodes[node].branch_length = coords[parent] - coords[node];
+							mtr.tree.nodes[node].branch_length = coords[parent] - coords[node];
 							mtr.tree.nodes[node].SNP_begin = snp; //first SNP index
 						} 
 					}else if(num_children > 2){
@@ -2836,7 +2830,7 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 								}
 							}
 							children[i] = node_conversion[v];
-							
+
 							tsk_tree_get_time(&tree, v, &t1);
 							coords[node_conversion[v]] = t1;
 							i++;
@@ -2927,7 +2921,7 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 						mtr.tree.nodes[i].parent = &mtr.tree.nodes[node_count];
 
 						mtr.tree.nodes[node_count].parent = &mtr.tree.nodes[parent];
-            if((*mtr.tree.nodes[parent].child_left).label == i){
+						if((*mtr.tree.nodes[parent].child_left).label == i){
 							mtr.tree.nodes[parent].child_left = &mtr.tree.nodes[node_count];
 						}
 						if((*mtr.tree.nodes[parent].child_right).label == i){
@@ -2955,7 +2949,7 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 						mtr.tree.nodes[i].parent = &mtr.tree.nodes[node_count];
 
 						mtr.tree.nodes[node_count].parent = &mtr.tree.nodes[parent];
-            if((*mtr.tree.nodes[parent].child_left).label == i){
+						if((*mtr.tree.nodes[parent].child_left).label == i){
 							mtr.tree.nodes[parent].child_left = &mtr.tree.nodes[node_count];
 						}
 						if((*mtr.tree.nodes[parent].child_right).label == i){
@@ -2977,22 +2971,22 @@ ConvertFromTreeSequence(const std::string& filename_anc, const std::string& file
 				//std::cerr << ntip << " " << node_count << " " << N-1 << std::endl;
 
 				if(0){
-				for(int i = 0; i < 2*N-2; i++){
-					parent = (*mtr.tree.nodes[i].parent).label;
-					if(i >= parent){
-            std::cerr << i << " " << parent << std::endl;
+					for(int i = 0; i < 2*N-2; i++){
+						parent = (*mtr.tree.nodes[i].parent).label;
+						if(i >= parent){
+							std::cerr << i << " " << parent << std::endl;
+						}
+						assert(i < parent);
 					}
-					assert(i < parent);
-				}
 				}
 
 				std::vector<int> checkp(2*N-1,0);
 				for(int i = 0; i < 2*N-2; i++){
 					assert(mtr.tree.nodes[i].label == i);
-          checkp[(*mtr.tree.nodes[i].parent).label]++;
+					checkp[(*mtr.tree.nodes[i].parent).label]++;
 				}
 				for(int i = N; i < 2*N-1; i++){
-          assert(checkp[i] == 2);
+					assert(checkp[i] == 2);
 				}
 
 				std::vector<int> checkc(2*N-1,0);

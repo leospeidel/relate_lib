@@ -33,10 +33,15 @@ ConvertToTreeSequence(cxxopts::Options& options){
   if(options.count("compress")){
     compress = true;
   }
-	int fb;
+	int fb = -1;
+	std::string region = "";
 	if(options.count("fb")){
 		fb = options["fb"].as<int>();
-		assert(fb > 0);
+	  assert(fb > 0);
+	}
+	assert(fb > -2);
+	if(options.count("region")){
+		region = options["region"].as<std::string>();
 	}
   if(options.count("quiet")){
     verbose = false;
@@ -63,9 +68,15 @@ ConvertToTreeSequence(cxxopts::Options& options){
       options["iterations"].as<int>(), 
       verbose
     );
-  } else if(options.count("fb")) {
+  } else if(options.count("fb") || options.count("region")) {
 
-		DumpAsTreeSequenceXkb(options["anc"].as<std::string>(), options["mut"].as<std::string>(), fb, outfile);
+		if(options.count("threshold")){
+			DumpAsTreeSequenceXkb(options["anc"].as<std::string>(), options["mut"].as<std::string>(), fb, region, outfile, options["threshold"].as<float>());	
+			//DumpAsTreeSequenceXkb(options["anc"].as<std::string>(), options["mut"].as<std::string>(), fb, outfile);
+		}else{
+			//DumpAsTreeSequenceXkb(options["anc"].as<std::string>(), options["mut"].as<std::string>(), fb, outfile);
+			DumpAsTreeSequenceXkb(options["anc"].as<std::string>(), options["mut"].as<std::string>(), fb, region, outfile);
+		}
 
 	} else {
     //new set of nodes for each tree (this does not compress trees)
@@ -172,6 +183,8 @@ int main(int argc, char* argv[]){
     ("no_bl", "If specified, assume that tree sequence has no branch lengths.")
 		("ordered_labels", "If specified, haplotypes are labelled from 1:N, otherwise it will follow individuals.")
 		("fb", "If specified, trees are only output at these intervals.", cxxopts::value<int>())
+		("region", "If specified, trees are only output bp specified in this file. Format: one bp per line", cxxopts::value<std::string>())
+		("threshold", "Threshold to use for identifying equivalent branches/nodes across adjacent trees", cxxopts::value<float>())
     ("seed", "Random seed (int).", cxxopts::value<int>())
     ("i,input", "Filename of input.", cxxopts::value<std::string>())
     ("o,output", "Filename of output (excl file extension).", cxxopts::value<std::string>());
