@@ -798,7 +798,6 @@ DumpAsTreeSequenceXkb(const std::string& filename_anc, const std::string& filena
 	int current_window = 0;
 	std::vector<int> region_bps;
 	igzstream is_region(region);
-	int ipos;
 	if(!is_region.fail() && region != ""){
 		while(is_region >> pos){
 			region_bps.push_back(pos);
@@ -806,6 +805,7 @@ DumpAsTreeSequenceXkb(const std::string& filename_anc, const std::string& filena
 		fb = -1;
 	}
 
+  int ipos = 0;
 	int count = 0;
 	it_mut = ancmut.mut_begin();
 	while(num_bases_tree_persists >= 0.0){
