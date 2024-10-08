@@ -1501,7 +1501,7 @@ AncesTree::NodeAssociation(const Tree& ref_tree, const Tree& tree, std::vector<i
 
 //Carry over information across equivalent branches
 void
-AncesTree::AssociateEquivalentBranches(float threshold_brancheq){
+AncesTree::AssociateEquivalentBranches(float threshold_brancheq, bool use_muts){
 
 	CorrTrees::iterator it_seq_prev;
 	CorrTrees::iterator it_seq; 
@@ -1559,7 +1559,7 @@ AncesTree::AssociateEquivalentBranches(float threshold_brancheq){
 		it_nodes = (*it_seq).tree.nodes.begin();
 		for(std::vector<int>::iterator it = (*it_equivalent_branches).begin(); it != (*it_equivalent_branches).end(); it++){
 			if(*it != -1){
-				(*it_nodes).num_events += (*it_seq_prev).tree.nodes[*it].num_events;
+				if(use_muts) (*it_nodes).num_events += (*it_seq_prev).tree.nodes[*it].num_events;
 				(*it_nodes).SNP_begin   = (*it_seq_prev).tree.nodes[*it].SNP_begin;
 			}
 			it_nodes++;
@@ -1584,7 +1584,7 @@ AncesTree::AssociateEquivalentBranches(float threshold_brancheq){
 		it_nodes = (*rit_seq_next).tree.nodes.begin();
 		for(std::vector<int>::iterator it = (*rit_equivalent_branches).begin(); it != (*rit_equivalent_branches).end(); it++){
 			if(*it != -1){
-				(*rit_seq).tree.nodes[*it].num_events = (*it_nodes).num_events;
+				if(use_muts) (*rit_seq).tree.nodes[*it].num_events = (*it_nodes).num_events;
 				(*rit_seq).tree.nodes[*it].SNP_end    = (*it_nodes).SNP_end;
 			}
 			it_nodes++;

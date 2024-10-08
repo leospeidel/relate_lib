@@ -227,7 +227,7 @@ class AncesTree{
     //Associate equivalent branches in seq
     void BranchAssociation(const Tree& ref_tree, const Tree& tree, std::vector<int>& equivalent_branches, std::vector<std::vector<int>>& potential_branches, int N, int N_total, float threshold_brancheq);
 		void NodeAssociation(const Tree& ref_tree, const Tree& tree, std::vector<int>& equivalent_branches, std::vector<std::vector<int>>& potential_branches, int N, int N_total, float threshold_brancheq);
-    void AssociateEquivalentBranches(float threshold_brancheq = 0.95);
+    void AssociateEquivalentBranches(float threshold_brancheq = 0.95, bool use_muts = true);
 		void AssociateEquivalentNodes(float threshold_brancheq = 0.95);
  
 };
